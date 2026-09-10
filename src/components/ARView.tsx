@@ -92,7 +92,7 @@ export default function ARView({ onClose }: { onClose: () => void }) {
             <ScanLine size={15} /> AR SIMULATION
           </span>
           <h1>현장 위에, 배관을 보다</h1>
-          <p>여수산단 A-12 구역 · YS-001</p>
+          <p><span className="private-place">여수산단 A-12 구역</span> · YS-001</p>
         </div>
         <button className="ar-round" onClick={onClose} aria-label="AR 닫기">
           <X />

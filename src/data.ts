@@ -20,11 +20,7 @@ export type Page =
   | 'guide'
   | 'history'
 
-export const FACILITIES: Record<string, { name: string; kind: string; diameter: number }> = {
-  'GP-001': { name: '중압 도시가스 주배관', kind: '주배관', diameter: 300 },
-  'GP-002': { name: '중압 도시가스 분기관', kind: '분기관', diameter: 200 },
-  'V-001': { name: '분기관 차단 밸브', kind: '차단 밸브', diameter: 200 },
-}
+export { FACILITIES } from './network'
 export type Report = {
   id: string
   locationId: string

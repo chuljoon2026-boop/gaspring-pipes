@@ -602,6 +602,33 @@ input::placeholder {
   font-size: 12px;
 }
 .app-footer > div { display: flex; flex-wrap: wrap; gap: 16px; }
+.private-place,
+.location-strip-text > strong,
+.location-strip-text > span,
+.site-card-heading h2,
+.viewer-location > span > strong,
+.qr-print-card > h3,
+#report-location {
+  filter: blur(4px);
+  user-select: none;
+}
+.facility-description, .model-reference { color: #617268; font-size: 12px; line-height: 1.7; }
+.facility-description { margin: 0 0 16px; padding: 12px; border-radius: 8px; background: #f0f5f2; }
+.model-reference { margin: 14px 0; }
+.model-reference a { text-decoration: underline; }
+.layer-dot.blue { background: #3b9fd0; }
+.layer-dot.slate { background: #709ca8; }
+.viewer-legend { flex-wrap: wrap; gap: 10px; }
+.facility-select { max-width: 170px; }
+.pipe-scene-label__details b { overflow-wrap: anywhere; }
+.pipe-scene-label__details > span > span { white-space: nowrap; }
+.pipe-scene-label.pipe-scene-label--structure { width: 160px; }
+@media (max-width: 600px) {
+  .viewer-toolbar { flex-wrap: wrap; gap: 8px; }
+  .view-toggle { flex-wrap: wrap; }
+  .view-toggle button { font-size: 11px; padding: 8px; }
+  .viewer-legend { max-width: calc(100% - 30px); font-size: 10px; }
+}
 @media (max-width: 600px) {
   .app-header { align-items: flex-start; flex-direction: column; gap: 12px; padding: 16px 20px; }
   .app-nav { width: 100%; }

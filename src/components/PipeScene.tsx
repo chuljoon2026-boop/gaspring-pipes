@@ -4,6 +4,8 @@ import { Html, OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import './PipeScene.css';
+import UtilityNetwork, { NetworkLabels } from './UtilityNetwork';
+import { FACILITIES } from '../network';
 
 export interface PipeSceneProps {
   mode?: 'surface' | 'underground' | 'ar';
@@ -15,12 +17,14 @@ export interface PipeSceneProps {
   resetKey?: number;
   compact?: boolean;
   onSelectPipe?: (id: string) => void;
+  showUtilities?: boolean;
+  showStructures?: boolean;
+  exploded?: boolean;
+  selectedId?: string;
+  showContext?: boolean;
 }
 
 type Vec3 = [number, number, number];
-const PIPE_Y = -1.2;
-const PIPE_COLOR = '#ffb631';
-const PIPE_DARK = '#b7750c';
 
 function Box({ position, size, color, opacity = 1, metalness = 0, roughness = 0.75, rotation }: {
   position: Vec3; size: Vec3; color: string; opacity?: number; metalness?: number; roughness?: number; rotation?: Vec3;
@@ -97,6 +101,9 @@ function Building({ position, width, depth, height, industrial = false }: {
         <Box position={[0, 1.39, depth / 2 + 0.17]} size={[width * 0.42, 0.055, 0.45]} color="#748b85" metalness={0.3} />
       </>}
       <Box position={[width / 2 + 0.02, height * 0.55, 0]} size={[0.04, 0.65, depth * 0.55]} color="#a9babb" metalness={0.2} />
+      <Html position={[0,height+0.5,0]} center zIndexRange={[3,0]}>
+        <span className="private-map-name" aria-label="건물명 비공개">산단 시설 건물</span>
+      </Html>
     </group>
   );
 }
@@ -126,61 +133,6 @@ function Barrier({ x, z }: { x: number; z: number }) {
       </group>)}
       <Box position={[0, 0.48, 0]} size={[1.22, 0.27, 0.05]} color="#f2b63d" />
       {[-0.45, -0.15, 0.15, 0.45].map(xx => <Box key={xx} position={[xx, 0.48, 0.029]} size={[0.105, 0.26, 0.008]} color="#56615f" rotation={[0, 0, -0.36]} />)}
-    </group>
-  );
-}
-
-function Flange({ x, z = 0.5, alongZ = false }: { x: number; z?: number; alongZ?: boolean }) {
-  return (
-    <group position={[x, PIPE_Y, z]} rotation={alongZ ? [0, Math.PI / 2, 0] : [0, 0, 0]}>
-      {[-0.065, 0.065].map(offset => <Cylinder key={offset} position={[offset, 0, 0]} radius={0.23} height={0.074} color={PIPE_COLOR} rotation={[0, 0, Math.PI / 2]} metalness={0.55} />)}
-      <Cylinder position={[0, 0, 0]} radius={0.21} height={0.038} color="#514b36" rotation={[0, 0, Math.PI / 2]} metalness={0.5} />
-      {Array.from({ length: 8 }, (_, i) => {
-        const angle = i * Math.PI / 4;
-        return <Cylinder key={i} position={[0, Math.sin(angle) * 0.191, Math.cos(angle) * 0.191]} radius={0.026} height={0.22} color="#777c75" rotation={[0, 0, Math.PI / 2]} metalness={0.85} />;
-      })}
-    </group>
-  );
-}
-
-function PipeNetwork({ onSelectPipe }: { onSelectPipe?: (id: string) => void }) {
-  const mainPath = useMemo(() => {
-    const path = new THREE.CurvePath<THREE.Vector3>();
-    path.add(new THREE.LineCurve3(new THREE.Vector3(-9.4, PIPE_Y, 0.5), new THREE.Vector3(3.8, PIPE_Y, 0.5)));
-    path.add(new THREE.QuadraticBezierCurve3(new THREE.Vector3(3.8, PIPE_Y, 0.5), new THREE.Vector3(5.1, PIPE_Y, 0.5), new THREE.Vector3(5.1, PIPE_Y, -0.8)));
-    path.add(new THREE.LineCurve3(new THREE.Vector3(5.1, PIPE_Y, -0.8), new THREE.Vector3(5.1, PIPE_Y, -2.68)));
-    return path;
-  }, []);
-  return (
-    <group>
-      <mesh onClick={event => { event.stopPropagation(); onSelectPipe?.('GP-001'); }} castShadow>
-        <tubeGeometry args={[mainPath, 160, 0.15, 20, false]} />
-        <meshStandardMaterial color={PIPE_COLOR} metalness={0.48} roughness={0.3} />
-      </mesh>
-      <mesh position={[-1.6, PIPE_Y, -0.98]} rotation={[Math.PI / 2, 0, 0]} castShadow onClick={event => { event.stopPropagation(); onSelectPipe?.('GP-002'); }}>
-        <cylinderGeometry args={[0.1, 0.1, 2.96, 20]} />
-        <meshStandardMaterial color={PIPE_COLOR} metalness={0.48} roughness={0.3} />
-      </mesh>
-      {[-7.7, -4.1, 0.8, 3.45].map(x => <Flange key={x} x={x} />)}
-      <Flange x={5.1} z={-1.76} alongZ />
-      <Flange x={-1.6} z={-1.18} alongZ />
-      <Cylinder position={[-1.6, PIPE_Y, 0.5]} radius={0.185} height={0.52} color={PIPE_COLOR} rotation={[0, 0, Math.PI / 2]} metalness={0.55} />
-      <group position={[-1.6, PIPE_Y, -1.85]} onClick={event => { event.stopPropagation(); onSelectPipe?.('V-001'); }}>
-        <Cylinder position={[0, 0, 0]} radius={0.18} height={0.35} color={PIPE_DARK} rotation={[Math.PI / 2, 0, 0]} metalness={0.6} />
-        <Cylinder position={[0, 0.19, 0]} radius={0.14} height={0.32} color={PIPE_COLOR} metalness={0.55} />
-        <Box position={[0, 0.32, 0]} size={[0.33, 0.08, 0.28]} color={PIPE_COLOR} metalness={0.55} />
-        <Cylinder position={[0, 0.48, 0]} radius={0.034} height={0.28} color="#848b85" metalness={0.9} />
-        <mesh position={[0, 0.61, 0]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-          <torusGeometry args={[0.255, 0.034, 8, 32]} />
-          <meshStandardMaterial color="#d85737" metalness={0.6} roughness={0.35} />
-        </mesh>
-        {[0, Math.PI / 3, Math.PI * 2 / 3].map(angle => <Box key={angle} position={[0, 0.61, 0]} size={[0.47, 0.024, 0.024]} color="#cb5237" metalness={0.6} rotation={[0, angle, 0]} />)}
-      </group>
-      {[-8.9, -6.2, -3.2, 0, 2.8].map(x => <group key={x}>
-        <Box position={[x, -2.005, 0.5]} size={[0.55, 0.18, 0.7]} color="#a4b1a8" />
-        <Box position={[x, -1.62, 0.5]} size={[0.17, 0.6, 0.2]} color="#9aa89e" />
-        <Cylinder position={[x, PIPE_Y, 0.5]} radius={0.162} height={0.065} color="#8d8c65" rotation={[0, 0, Math.PI / 2]} metalness={0.65} />
-      </group>)}
     </group>
   );
 }
@@ -258,29 +210,12 @@ function RiskZones() {
   </group>;
 }
 
-function SceneLabels({ compact, onSelectPipe }: { compact: boolean; onSelectPipe?: (id: string) => void }) {
-  return <group>
-    <Cylinder position={[-4.1, -0.54, 0.5]} radius={0.012} height={1.22} color="#be801d" />
-    <mesh position={[-4.1, PIPE_Y + 0.2, 0.5]}><sphereGeometry args={[0.065, 12, 12]} /><meshBasicMaterial color="#fff3cd" /></mesh>
-    <Html position={[-4.1, 0.17, 0.5]} center zIndexRange={[12, 0]}>
-      <button type="button" className={`pipe-scene-label${compact ? ' pipe-scene-label--compact' : ''}`} onClick={() => onSelectPipe?.('GP-001')} aria-label="가스 주배관 GP-001 상세 정보">
-        <span className="pipe-scene-label__title"><i /> GAS PIPE <span>GP-001</span></span>
-        <span className="pipe-scene-label__rule" />
-        <span className="pipe-scene-label__details"><span>Depth <b>1.2 m</b></span><span>Diameter <b>300 mm</b></span></span>
-      </button>
-    </Html>
-    {!compact && <Html position={[5.1, -0.15, -1.7]} center zIndexRange={[11, 0]}>
-      <span className="pipe-scene-small-label"><i /> 곡관 · 90°</span>
-    </Html>}
-  </group>;
-}
-
-function CameraRig({ view, resetKey, compact, mode }: Required<Pick<PipeSceneProps, 'view' | 'resetKey' | 'compact' | 'mode'>>) {
+function CameraRig({ view, resetKey, compact, mode, showContext }: Required<Pick<PipeSceneProps, 'view' | 'resetKey' | 'compact' | 'mode' | 'showContext'>>) {
   const controls = useRef<OrbitControlsImpl>(null);
   const { camera, size, invalidate } = useThree();
   useEffect(() => {
     const aspect = size.width / Math.max(1, size.height);
-    const distance = (mode === 'ar' ? 29.5 : compact ? 32.2 : 34.5) / Math.min(1.2, Math.max(0.55, aspect));
+    const distance = (mode === 'ar' ? 29.5 : !showContext ? 29 : compact ? 32.2 : 34.5) / Math.min(1.2, Math.max(0.55, aspect));
     const targetY = view === 'top' ? -0.25 : -0.65;
     const direction = view === 'top' ? new THREE.Vector3(0, 1, 0.001).normalize() : new THREE.Vector3(1.03, 0.91, 1.25).normalize();
     camera.position.copy(direction.multiplyScalar(distance));
@@ -289,11 +224,11 @@ function CameraRig({ view, resetKey, compact, mode }: Required<Pick<PipeScenePro
     controls.current?.target.set(0, targetY, 0);
     controls.current?.update();
     invalidate();
-  }, [camera, size.width, size.height, view, resetKey, compact, mode, invalidate]);
+  }, [camera, size.width, size.height, view, resetKey, compact, mode, showContext, invalidate]);
   return <OrbitControls ref={controls} makeDefault enableDamping dampingFactor={0.085} minDistance={7} maxDistance={75} minPolarAngle={0.001} maxPolarAngle={Math.PI / 2.05} zoomSpeed={0.8} rotateSpeed={0.65} panSpeed={0.65} screenSpacePanning />;
 }
 
-function World({ mode, showPipes, showZones, showLabels, surfaceOpacity, view, resetKey, compact, onSelectPipe }: Required<Omit<PipeSceneProps, 'onSelectPipe'>> & Pick<PipeSceneProps, 'onSelectPipe'>) {
+function World({ mode, showPipes, showZones, showLabels, surfaceOpacity, view, resetKey, compact, onSelectPipe, showUtilities, showStructures, exploded, selectedId, showContext }: Required<Omit<PipeSceneProps, 'onSelectPipe'>> & Pick<PipeSceneProps, 'onSelectPipe'>) {
   const ar = mode === 'ar';
   const underground = mode !== 'surface';
   const { gl } = useThree();
@@ -308,11 +243,12 @@ function World({ mode, showPipes, showZones, showLabels, surfaceOpacity, view, r
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -2.72, 0]} receiveShadow><planeGeometry args={[150, 150]} /><meshStandardMaterial color="#edf2ef" roughness={1} /></mesh>
       <gridHelper args={[70, 70, '#dbe4df', '#e2e9e4']} position={[0, -2.711, 0]} />
     </>}
-    <Street underground={underground} opacity={ar ? Math.min(surfaceOpacity, 0.17) : surfaceOpacity} ar={ar} />
+    {showContext ? <Street underground={underground} opacity={ar ? Math.min(surfaceOpacity, 0.17) : surfaceOpacity} ar={ar} /> : <Box position={[0,-2.4,0]} size={[20,0.15,6]} color="#d1c5ab" opacity={ar ? 0.25 : 1} />}
     {underground && showZones && <RiskZones />}
-    {underground && showPipes && <PipeNetwork onSelectPipe={onSelectPipe} />}
-    {underground && showPipes && showLabels && <SceneLabels compact={compact} onSelectPipe={onSelectPipe} />}
-    <CameraRig view={view} resetKey={resetKey} compact={compact} mode={mode} />
+    {underground && <UtilityNetwork showPipes={showPipes} showUtilities={showUtilities} showStructures={showStructures} exploded={exploded} selectedId={selectedId} onSelectPipe={onSelectPipe} />}
+    {underground && showLabels && (FACILITIES[selectedId]?.layer === 'gas' ? showPipes : FACILITIES[selectedId]?.layer === 'utilities' ? showUtilities : showStructures) && <NetworkLabels compact={compact} selectedId={selectedId} exploded={exploded} onSelectPipe={onSelectPipe} />}
+    {!ar && showContext && <Html position={[7.5,0.1,0]} center zIndexRange={[2,0]}><span className="private-map-name" aria-label="도로명 비공개">산단 도로명</span></Html>}
+    <CameraRig view={view} resetKey={resetKey} compact={compact} mode={mode} showContext={showContext} />
   </>;
 }
 
@@ -339,12 +275,12 @@ class SceneBoundary extends Component<{ children: ReactNode; mode: PipeSceneProp
   render() { return this.state.failed ? <Fallback mode={this.props.mode} onRetry={this.props.onRetry} /> : this.props.children; }
 }
 
-export default function PipeScene({ mode = 'underground', showPipes = true, showZones = true, showLabels = true, surfaceOpacity = 0.16, view = 'perspective', resetKey = 0, compact = false, onSelectPipe }: PipeSceneProps) {
+export default function PipeScene({ mode = 'underground', showPipes = true, showZones = true, showLabels = true, surfaceOpacity = 0.08, view = 'perspective', resetKey = 0, compact = false, onSelectPipe, showUtilities = true, showStructures = true, exploded = false, selectedId = 'GP-001', showContext = true }: PipeSceneProps) {
   const [attempt, setAttempt] = useState(0);
   return <div className={`pipe-scene pipe-scene--${mode}${compact ? ' pipe-scene--compact' : ''}`} role="region" aria-label={mode === 'surface' ? '여수산단 A-12 현장 3D 지상 모형. 드래그로 회전, 두 손가락으로 이동하거나 확대합니다.' : '여수산단 A-12 지하 가스배관 3D 모형. 매설 깊이 1.2미터, 직경 300밀리미터. 드래그로 회전, 두 손가락으로 이동하거나 확대합니다.'}>
     <SceneBoundary key={attempt} mode={mode} onRetry={() => setAttempt(value => value + 1)}>
       <Canvas shadows dpr={[1, 1.65]} camera={{ position: [18, 16, 20], fov: 42, near: 0.1, far: 180 }} gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }} frameloop="demand" fallback={<Fallback mode={mode} onRetry={() => setAttempt(value => value + 1)} />} onCreated={({ gl }) => { gl.setClearColor('#edf2ef', mode === 'ar' ? 0 : 1); }}>
-        <World mode={mode} showPipes={showPipes} showZones={showZones} showLabels={showLabels} surfaceOpacity={Math.max(0, Math.min(1, surfaceOpacity))} view={view} resetKey={resetKey} compact={compact} onSelectPipe={onSelectPipe} />
+        <World mode={mode} showPipes={showPipes} showZones={showZones} showLabels={showLabels} surfaceOpacity={Math.max(0, Math.min(1, surfaceOpacity))} view={view} resetKey={resetKey} compact={compact} onSelectPipe={onSelectPipe} showUtilities={showUtilities} showStructures={showStructures} exploded={exploded} selectedId={selectedId} showContext={showContext} />
       </Canvas>
     </SceneBoundary>
   </div>;

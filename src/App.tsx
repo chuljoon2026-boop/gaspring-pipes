@@ -414,7 +414,7 @@ function HomePage({ go }: { go: (page: Page) => void }) {
     <>
       <PageHeading
         title="굴착공사 조회"
-        description="QR YS-001 · 여수산단 A-12 구역의 공사 등록 상태"
+        description="QR YS-001 · 연결된 현장의 공사 등록 상태"
       />
       <div className="location-strip">
         <div className="location-pin">
@@ -651,7 +651,7 @@ function ReportPage({
             <input id="report-location" value={LOCATION.name} readOnly />
           </div>
           <div className="field-hint">
-            QR 마커 {LOCATION.id} 기준 · {LOCATION.address}
+            QR 마커 {LOCATION.id} 기준 · <span className="private-place">{LOCATION.address}</span>
           </div>
           <div className="form-divider" />
           <div className="form-section-title">
@@ -989,10 +989,14 @@ function WorkerPage({
   logout: () => void
   notify: (text: string) => void
 }) {
-  const [zones, setZones] = useState(true)
+  const [zones, setZones] = useState(false)
   const [labels, setLabels] = useState(true)
   const [pipes, setPipes] = useState(true)
-  const [opacity, setOpacity] = useState(0.16)
+  const [opacity, setOpacity] = useState(0.08)
+  const [utilities, setUtilities] = useState(true)
+  const [structures, setStructures] = useState(true)
+  const [exploded, setExploded] = useState(false)
+  const [context, setContext] = useState(true)
   const [view, setView] = useState<'perspective' | 'top'>('perspective')
   const [reset, setReset] = useState(0)
   const [selected, setSelected] = useState('GP-001')
@@ -1012,7 +1016,7 @@ function WorkerPage({
     <>
       <PageHeading
         title="지하 배관 3D 뷰어"
-        description="보이지 않는 지하 배관을 살펴보고, 안전한 작업 범위를 확인하세요."
+        description="가스·상수·배수·전력 관로와 보호판을 선택해 배치와 깊이를 확인합니다."
         aside={
           <div className="worker-auth">
             <Tag>
@@ -1055,6 +1059,9 @@ function WorkerPage({
                 <Layers3 size={16} />
                 평면 뷰
               </button>
+              <button className={exploded ? 'active' : ''} aria-pressed={exploded} onClick={() => { setExploded(!exploded); setStructures(true) }}>
+                <Layers3 size={16} />판 분해 보기
+              </button>
             </div>
             <button className="ar-view-button" onClick={() => go('ar')}>
               <ScanLine size={17} />
@@ -1068,7 +1075,12 @@ function WorkerPage({
                 mode="underground"
                 showPipes={pipes}
                 showZones={zones}
-                showLabels={labels && pipes}
+                showLabels={labels}
+                showUtilities={utilities}
+                showStructures={structures}
+                exploded={exploded}
+                selectedId={selected}
+                showContext={context}
                 surfaceOpacity={opacity}
                 view={view}
                 resetKey={reset}
@@ -1102,6 +1114,10 @@ function WorkerPage({
               <i className="pipe-dot" />
               가스배관
             </span>
+            <span><i style={{background:'#3b9fd0'}} />상수</span>
+            <span><i style={{background:'#82978b'}} />배수</span>
+            <span><i style={{background:'#cb675e'}} />전력</span>
+            <span><i style={{background:'#709ca8'}} />보호판</span>
             <span>
               <i className="danger-dot" />
               굴착 주의 영역
@@ -1119,7 +1135,7 @@ function WorkerPage({
         </section>
         <aside className="viewer-panel">
           <div className="panel-heading">
-            <h2>배관 상세 정보</h2>
+            <h2>시설 상세 정보</h2>
             <select
               className="facility-select"
               aria-label="시설 선택"
@@ -1127,11 +1143,13 @@ function WorkerPage({
               onChange={(event) => {
                 setSelected(event.target.value)
                 setPipes(true)
+                setUtilities(true)
+                setStructures(true)
               }}
             >
               {Object.entries(FACILITIES).map(([id, item]) => (
                 <option key={id} value={id}>
-                  {item.kind}
+                  {id} · {item.kind}
                 </option>
               ))}
             </select>
@@ -1140,6 +1158,8 @@ function WorkerPage({
             className="selected-pipe"
             onClick={() => {
               setPipes(true)
+              setUtilities(true)
+              setStructures(true)
               setLabels(true)
               setReset((value) => value + 1)
             }}
@@ -1155,25 +1175,26 @@ function WorkerPage({
           </button>
           <div className="pipe-measurements">
             <div>
-              <span>배관 깊이</span>
+              <span>{facility.dimensions ? '설치 깊이' : '배관 깊이'}</span>
               <strong>
-                1.2 <small>m</small>
+                {facility.depth} <small>m</small>
               </strong>
-              <p>지표면 기준 중심 깊이</p>
+              <p>{selected === 'GP-003' ? '지하 -1.2m → 지상 +1.1m' : '지표면 기준 · 가상 치수'}</p>
             </div>
             <div>
-              <span>배관 직경</span>
+              <span>{facility.dimensions ? '판 규격' : '배관 직경'}</span>
               <strong>
-                {facility.diameter} <small>mm</small>
+                {facility.dimensions ? <small>{facility.dimensions}</small> : <>{facility.diameter} <small>mm</small></>}
               </strong>
-              <p>{selected === 'V-001' ? '연결 분기관 외경' : '배관 외경'}</p>
+              <p>{facility.dimensions ? '시연용 형상' : selected === 'V-001' ? '연결 분기관 외경' : '배관 외경'}</p>
             </div>
           </div>
           <dl className="pipe-details">
             <div>
-              <dt>배관 재질</dt>
-              <dd>탄소강관 (Steel)</dd>
+              <dt>재질</dt>
+              <dd>{facility.material}</dd>
             </div>
+            <div><dt>접합 / 구성</dt><dd>{facility.joint}</dd></div>
             <div>
               <dt>시설 구분</dt>
               <dd>{facility.kind}</dd>
@@ -1188,12 +1209,16 @@ function WorkerPage({
               </dd>
             </div>
           </dl>
+          <p className="facility-description">{facility.detail}</p>
           <div className="layer-controls">
             <h3>
               <Layers3 size={17} />
               표시 레이어
             </h3>
             <LayerToggle label="가스배관" on={pipes} change={setPipes} color="yellow" />
+            <LayerToggle label="상수·배수·전력관" on={utilities} change={setUtilities} color="blue" />
+            <LayerToggle label="보호판·복공판·지지판" on={structures} change={setStructures} color="slate" />
+            <LayerToggle label="주변 건물·도로" on={context} change={setContext} color="green" />
             <LayerToggle label="굴착 주의 영역" on={zones} change={setZones} color="orange" />
             <LayerToggle label="배관 정보 라벨" on={labels} change={setLabels} color="green" />
             <div className="opacity-label">
@@ -1234,6 +1259,7 @@ function WorkerPage({
           필요합니다.
         </span>
       </div>
+      <p className="model-reference">재료·접합 표현 참고: <a href="https://blog.naver.com/knownolimit/221697960747" target="_blank" rel="noreferrer">배관설비기준 정리 글</a> · 판과 관로 배치는 가상 구성입니다.</p>
     </>
   )
 }
@@ -1390,7 +1416,7 @@ function QRPage({ notify }: { notify: (text: string) => void }) {
     <>
       <PageHeading
         title="현장 접속 QR"
-        description="스캔하면 여수산단 A-12 구역의 공사 조회 화면이 열립니다."
+        description="스캔하면 현장 YS-001의 공사 조회 화면이 열립니다."
       />
       <div className="qr-layout">
         <section className="qr-print-card">

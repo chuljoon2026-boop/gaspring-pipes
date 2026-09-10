@@ -18,5 +18,6 @@
 .pipe-scene-fallback strong { color: #2c493b; font-size: 15px; }
 .pipe-scene-fallback button { margin-top: 6px; padding: 8px 15px; border: 1px solid #cedbd1; border-radius: 7px; background: #fff; color: #28715d; cursor: pointer; font-family: inherit; }
 .pipe-scene--ar { background: transparent; }
+.private-map-name { display: block; filter: blur(4px); user-select: none; pointer-events: none; white-space: nowrap; background: #ffffffb0; color: #667b72; font-size: 12px; padding: 3px 10px; border-radius: 4px; }
 .pipe-scene--ar .pipe-scene-label { background: rgba(255, 255, 250, .94); }
 @container (max-width: 500px) { .pipe-scene-label { --label-lift: 84px; width: 112px; padding: 7px 8px; border-radius: 7px; } .pipe-scene-label__title { font-size: 9px; gap: 5px; } .pipe-scene-label__title > span { display: none; } .pipe-scene-label__rule { margin: 5px 0; } .pipe-scene-label__details { font-size: 9px; gap: 3px; } .pipe-scene-label__details b { font-size: 10px; } .pipe-scene-label__details > span { gap: 6px; } .pipe-scene-small-label { display: none; } }
