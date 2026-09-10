@@ -1,0 +1,43 @@
+{
+  "name": "gas-on-safety-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "typecheck": "tsc -b",
+    "qr": "node scripts/generate-qr.mjs",
+    "icons": "node scripts/generate-icons.mjs",
+    "test:e2e": "playwright test",
+    "android:add": "cap add android",
+    "android:sync": "npm run build && cap sync android",
+    "android:open": "cap open android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.3.0",
+    "lucide-react": "^0.468.0",
+    "qrcode": "^1.5.4",
+    "react": "~19.2.8",
+    "react-dom": "~19.2.8",
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.3",
+    "@playwright/test": "^1.55.0",
+    "@types/node": "^24.5.2",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "@types/three": "^0.180.0",
+    "@vitejs/plugin-react": "^5.0.3",
+    "sharp": "^0.35.4",
+    "typescript": "~5.9.2",
+    "vite": "^7.1.7",
+    "vite-plugin-pwa": "^1.0.3"
+  }
+}

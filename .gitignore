@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.vite/
+.env
+.env.*
+!.env.example
+*.local
+*.log
+playwright-report/
+test-results/
+artifacts/
+android/
+ios/
+.vercel/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="600" viewBox="0 0 960 600">
+<rect width="960" height="600" fill="#dce9e7"/><path d="M0 190h960v190H0z" fill="#c5d1cd"/><path d="M0 360h960v240H0z" fill="#7b898a"/><path d="M0 325h960v35H0z" fill="#d2d7d3"/>
+<g fill="#eaf0ea" stroke="#bac8c3" stroke-width="4"><path d="M55 165h265v160H55z"/><path d="M660 112h245v213H660z"/></g><g fill="#9eafab"><path d="M85 195h53v62H85zm74 0h53v62h-53zm74 0h53v62h-53z"/><path d="M691 152h56v62h-56zm77 0h56v62h-56zm77 0h30v62h-30z"/></g>
+<path d="M0 522h960" stroke="#eef0d9" stroke-width="9" stroke-dasharray="65 48"/>
+<ellipse cx="530" cy="454" rx="177" ry="24" fill="#647273"/><g stroke="#8b6129" stroke-width="5"><rect x="418" y="379" width="170" height="58" rx="24" fill="#354546"/><path d="M420 312h152v76H420z" fill="#f0b945"/><path d="M471 239h82v77h-82z" fill="#e9b348"/><path d="M482 251h58v54h-58z" fill="#6b9c9b"/><path d="m571 320 52-117 34 8-39 132z" fill="#f0b945"/><path d="m641 205 64 121-23 12-60-117z" fill="#e8ad36"/><path d="m685 321 49 11-12 39h-43z" fill="#495852"/></g><g fill="#adb8ac"><circle cx="448" cy="409" r="13"/><circle cx="476" cy="409" r="13"/><circle cx="507" cy="409" r="13"/><circle cx="538" cy="409" r="13"/><circle cx="566" cy="409" r="13"/></g>
+<g fill="#ec7440" stroke="#f8ead9" stroke-width="8"><path d="m268 456 25-65 25 65z"/><path d="m749 458 25-65 25 65z"/></g><path d="M261 461h63m418 2h63" stroke="#3f4d48" stroke-width="9"/>
+<rect x="24" y="24" width="221" height="44" rx="8" fill="#ffffff" fill-opacity=".9"/><text x="43" y="53" font-family="sans-serif" font-size="21" fill="#285645">DEMO · 현장 예시 이미지</text>
+</svg>

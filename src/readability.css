@@ -1,0 +1,627 @@
+/* Keep metadata readable on a phone and in a projected presentation. */
+.facility-select {
+  font: inherit;
+  font-size: 11px;
+  min-height: 33px;
+  color: #567350;
+  border: 1px solid #dfe8d8;
+  border-radius: 6px;
+  background: #f7faf3;
+  padding: 6px 9px;
+  cursor: pointer;
+}
+.page-heading p,
+.location-strip-text > span,
+.marker-verified,
+.breadcrumb,
+.nav-item,
+.main-footer,
+.sidebar-footer,
+.checked-at,
+.checked-at button,
+.field-hint,
+.report-demo-note,
+.character-count,
+.optional,
+.form-card .field-label,
+.history-summary small,
+.history-meta,
+.qr-card-title > span,
+.qr-print-card > small,
+.qr-config > p,
+.qr-target > span,
+.qr-features,
+.guide-step p,
+.guide-install p,
+.modal-card > p,
+.modal-card > small,
+.install-instructions p,
+.empty-state p,
+.viewer-bottom-note,
+.site-card-bottom,
+.scene-map-scale,
+.steps-heading button,
+.home-step p,
+.upload-area > span:not(.upload-icon),
+.upload-area small {
+  color: #728177;
+}
+.status-description {
+  color: #82736d;
+}
+.status-warning {
+  color: #9c6959;
+}
+.caution-banner p {
+  color: #927e5f;
+}
+.caution-banner strong {
+  color: #816638;
+}
+.worker-entry p {
+  color: #b4cabe;
+}
+.worker-entry-copy > span {
+  color: #b4cabe;
+}
+.worker-mini-features {
+  color: #b4cabe;
+}
+.login-intro h1,
+.login-card h2,
+.completion-wrapper h1,
+.qr-config h2,
+.qr-card-title h2,
+.guide-step h2,
+.guide-install h2,
+.empty-state h2,
+.modal-card h2 {
+  color: #2b493a;
+}
+.login-intro > p,
+.login-benefits,
+.login-card > p,
+.login-location,
+.login-card > .field-label,
+.login-disclaimer,
+.demo-credentials p,
+.demo-credentials > div > span,
+.completion-subtitle,
+.receipt-card dt,
+.receipt-reason > span,
+.receipt-demo,
+.aside-note p,
+.aside-note li,
+.aside-mini p {
+  color: #75846b;
+}
+.demo-credentials p strong,
+.demo-credentials button,
+.receipt-card dd,
+.receipt-reason p,
+.history-content > p,
+.qr-target code,
+.qr-print-card h3,
+.qr-card-instruction {
+  color: #566b49;
+}
+.panel-heading h2,
+.selected-pipe strong,
+.pipe-measurements strong,
+.layer-controls h3 {
+  color: #375a3e;
+}
+.selected-pipe small,
+.pipe-measurements span,
+.pipe-measurements p,
+.pipe-details dt,
+.pipe-details dd,
+.layer-row,
+.opacity-label,
+.opacity-label span,
+.range-captions,
+.viewer-location small,
+.viewer-legend,
+.viewer-gesture,
+.viewer-demo-mark {
+  color: #718568;
+}
+.viewer-safety strong {
+  color: #987636;
+}
+.viewer-safety p {
+  color: #927d51;
+}
+.inline-note {
+  color: #728766;
+}
+.form-card textarea::placeholder,
+input::placeholder {
+  color: #8a968d;
+}
+.page-heading p,
+.status-description,
+.worker-entry p,
+.home-step p,
+.field-hint,
+.checked-at span,
+.checked-at button,
+.caution-banner p,
+.site-card-bottom,
+.main-footer {
+  font-size: 11px;
+}
+.home-step strong,
+.steps-heading h2 {
+  font-size: 12px;
+}
+.tag {
+  font-size: 10px;
+}
+.status-warning {
+  font-size: 11px;
+}
+.worker-entry {
+  gap: 17px;
+}
+.worker-entry-copy {
+  min-width: 0;
+}
+.worker-entry p {
+  max-width: 410px;
+}
+.viewer-location small,
+.selected-pipe small,
+.pipe-measurements span,
+.pipe-measurements p,
+.pipe-details dt,
+.pipe-details dd,
+.layer-row,
+.opacity-label,
+.range-captions,
+.viewer-safety p {
+  font-size: 10px;
+}
+.pipe-details .tag {
+  font-size: 9px;
+}
+.viewer-safety strong {
+  font-size: 11px;
+}
+.qr-features,
+.qr-print-card > small,
+.qr-card-instruction,
+.qr-target > span,
+.guide-step p,
+.guide-step .text-button,
+.guide-install p,
+.inline-note,
+.report-demo-note,
+.demo-credentials p,
+.demo-credentials > div > span,
+.demo-credentials button,
+.login-card .login-disclaimer,
+.login-card > p,
+.receipt-demo,
+.history-meta {
+  font-size: 11px;
+}
+.demo-credentials > div {
+  flex-wrap: wrap;
+  row-gap: 9px;
+}
+.demo-credentials p > span {
+  display: inline-block;
+  margin-left: 0;
+  margin-right: 4px;
+}
+.demo-credentials p {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.viewer-panel {
+  color: #486043;
+}
+.button {
+  font-size: 13px;
+}
+.login-card > .field-label {
+  font-size: 12px;
+}
+.field-label {
+  font-size: 12px;
+}
+.upload-area strong {
+  font-size: 13px;
+}
+.upload-area > span:not(.upload-icon),
+.upload-area small {
+  font-size: 11px;
+}
+.suggested-reasons button {
+  font-size: 10px;
+  padding: 7px 8px;
+}
+.text-button {
+  font-size: 11px;
+}
+.receipt-card dl > div {
+  font-size: 12px;
+}
+.receipt-reason p {
+  font-size: 12px;
+}
+.login-disclaimer {
+  flex-wrap: wrap;
+}
+.guide-step p {
+  line-height: 1.9;
+}
+.guide-step .text-button {
+  font-size: 10px;
+}
+.ar-status {
+  color: #dae7d4;
+  font-size: 12px;
+}
+.ar-caption {
+  color: #b1c2a8;
+  font-size: 10px;
+}
+.ar-measure small {
+  color: #c4d3bb;
+}
+@media (max-width: 1250px) {
+  .worker-mini-features {
+    display: none;
+  }
+  .main-footer {
+    font-size: 9px;
+  }
+}
+@media (max-width: 760px) {
+  .topbar {
+    height: 65px;
+    min-height: 65px;
+  }
+  .main-content {
+    padding-top: 25px;
+  }
+  .page-heading h1 {
+    font-size: 24px;
+    letter-spacing: -1px;
+  }
+  .page-heading p {
+    font-size: 12px;
+    line-height: 1.75;
+  }
+  .page-heading {
+    margin-bottom: 20px;
+  }
+  .location-strip-text strong {
+    font-size: 13px;
+  }
+  .location-strip-text > span {
+    font-size: 10px;
+  }
+  .marker-chip strong {
+    font-size: 10px;
+  }
+  .section-label {
+    font-size: 12px;
+  }
+  .status-card h2 {
+    font-size: 29px;
+    line-height: 1.38;
+  }
+  .status-description {
+    font-size: 13px;
+    line-height: 1.8;
+  }
+  .status-warning {
+    font-size: 11px;
+    line-height: 1.7;
+  }
+  .report-cta {
+    font-size: 14px;
+  }
+  .checked-at span,
+  .checked-at button {
+    font-size: 10px;
+  }
+  .warning-emblem {
+    margin: 21px 0 16px;
+  }
+  .caution-banner strong {
+    font-size: 13px;
+  }
+  .caution-banner p {
+    font-size: 11px;
+  }
+  .worker-entry {
+    gap: 12px;
+  }
+  .worker-entry h2 {
+    font-size: 19px;
+  }
+  .worker-entry-copy > span {
+    font-size: 8px;
+  }
+  .worker-entry p {
+    font-size: 11px;
+    line-height: 1.75;
+  }
+  .worker-login-button {
+    font-size: 13px;
+  }
+  .home-step {
+    padding: 17px 15px;
+  }
+  .home-step strong {
+    font-size: 13px;
+  }
+  .home-step p {
+    font-size: 11px;
+  }
+  .steps-heading h2 {
+    font-size: 12px;
+  }
+  .steps-heading button {
+    font-size: 11px;
+  }
+  .site-card-bottom {
+    font-size: 10px;
+  }
+  .site-card-bottom .tag {
+    font-size: 9px;
+  }
+  .bottom-nav button {
+    color: #718567;
+    font-size: 11px;
+    gap: 5px;
+  }
+  .main-footer {
+    font-size: 10px;
+  }
+  .form-section-title h2 {
+    font-size: 16px;
+  }
+  .field-label {
+    font-size: 13px;
+  }
+  .field-hint {
+    font-size: 10px;
+  }
+  .input-icon-wrap input {
+    font-size: 14px;
+  }
+  .label-row .field-label {
+    font-size: 13px;
+  }
+  .text-button {
+    font-size: 11px;
+  }
+  .suggested-reasons button {
+    font-size: 10px;
+  }
+  .report-demo-note {
+    font-size: 11px;
+  }
+  .login-intro > p {
+    font-size: 13px;
+  }
+  .login-card > p {
+    font-size: 12px;
+  }
+  .login-location {
+    font-size: 11px;
+  }
+  .login-location span {
+    font-size: 10px;
+  }
+  .login-card .login-disclaimer {
+    font-size: 10px;
+  }
+  .demo-credentials p,
+  .demo-credentials > div > span,
+  .demo-credentials button {
+    font-size: 10px;
+  }
+  .demo-credentials > div {
+    flex-wrap: wrap;
+  }
+  .completion-subtitle {
+    font-size: 13px;
+  }
+  .receipt-card dl > div {
+    font-size: 11px;
+  }
+  .receipt-card dd.mono {
+    font-size: 11px;
+  }
+  .receipt-demo {
+    font-size: 10px;
+  }
+  .completion-actions .button {
+    font-size: 12px;
+  }
+  .completion-worker {
+    font-size: 12px;
+  }
+  .worker-auth > .tag {
+    font-size: 9px;
+  }
+  .viewer-location > span {
+    font-size: 12px;
+  }
+  .viewer-location small {
+    font-size: 10px;
+  }
+  .view-toggle button,
+  .ar-view-button {
+    font-size: 11px;
+  }
+  .viewer-legend {
+    font-size: 10px;
+  }
+  .viewer-gesture,
+  .viewer-demo-mark {
+    font-size: 9px;
+  }
+  .viewer-panel {
+    padding: 23px 20px;
+  }
+  .panel-heading h2 {
+    font-size: 15px;
+  }
+  .selected-pipe small {
+    font-size: 11px;
+  }
+  .pipe-measurements span,
+  .pipe-measurements p {
+    font-size: 11px;
+  }
+  .pipe-details dt,
+  .pipe-details dd {
+    font-size: 12px;
+  }
+  .layer-controls h3 {
+    font-size: 14px;
+  }
+  .layer-row {
+    font-size: 13px;
+  }
+  .opacity-label {
+    font-size: 12px;
+  }
+  .range-captions {
+    font-size: 10px;
+  }
+  .viewer-safety p {
+    font-size: 11px;
+  }
+  .viewer-bottom-note {
+    font-size: 10px;
+  }
+  .history-title h2 {
+    font-size: 14px;
+  }
+  .history-content > p {
+    font-size: 13px;
+  }
+  .history-meta {
+    font-size: 10px;
+  }
+  .qr-config > p {
+    font-size: 13px;
+  }
+  .qr-config form .field-label {
+    font-size: 12px;
+  }
+  .qr-config form .button,
+  .qr-config > .button.secondary {
+    font-size: 13px;
+  }
+  .qr-target code {
+    font-size: 12px;
+  }
+  .qr-features,
+  .inline-note {
+    font-size: 11px;
+  }
+  .guide-step h2 {
+    font-size: 15px;
+  }
+  .guide-step p {
+    font-size: 12px;
+  }
+  .guide-step .text-button {
+    font-size: 11px;
+  }
+  .guide-install h2 {
+    font-size: 15px;
+  }
+  .guide-install p {
+    font-size: 12px;
+  }
+  .ar-top p,
+  .ar-status {
+    font-size: 12px;
+  }
+  .ar-camera-button {
+    font-size: 13px;
+  }
+  .ar-caption {
+    font-size: 10px;
+  }
+  .ar-measure small {
+    font-size: 10px;
+  }
+  .ar-measure > span {
+    font-size: 9px;
+  }
+  .ar-measure {
+    padding: 14px 13px;
+    gap: 10px;
+  }
+  .modal-card > p,
+  .install-instructions p {
+    font-size: 13px;
+  }
+  .modal-card > small {
+    font-size: 11px;
+  }
+  .empty-state p {
+    font-size: 13px;
+  }
+}
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+  border-bottom: 1px solid #dce5df;
+}
+.app-header .brand strong { font-size: 20px; }
+.app-nav { display: flex; flex-wrap: wrap; gap: 6px; }
+.app-nav button {
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.app-nav button.active { background: #e2eee7; color: #176e53; font-weight: 700; }
+.app-footer {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 24px;
+  color: #607268;
+  font-size: 12px;
+}
+.app-footer > div { display: flex; flex-wrap: wrap; gap: 16px; }
+@media (max-width: 600px) {
+  .app-header { align-items: flex-start; flex-direction: column; gap: 12px; padding: 16px 20px; }
+  .app-nav { width: 100%; }
+  .app-nav button { flex: 1; }
+  .app-footer { padding: 20px; }
+}
+@media (max-width: 370px) {
+  .page-heading h1 {
+    font-size: 22px;
+  }
+  .location-strip-text > span {
+    font-size: 9px;
+  }
+  .status-card h2 {
+    font-size: 28px;
+  }
+  .status-warning {
+    font-size: 10px;
+  }
+  .worker-auth > .tag {
+    font-size: 8px;
+  }
+}
