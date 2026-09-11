@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => {
           id: base,
           name: '현장 조회',
           short_name: '현장 조회',
-          description: 'QR로 공사 조회, 현장 신고, 배관 3D·AR 보기. 시연용 페이지.',
+          description: '여수산단 관로의 평면·단면·교차부 조회와 현장 신고.',
           lang: 'ko-KR',
           start_url: `${base}?location=YS-001`,
           scope: base,
@@ -49,7 +49,12 @@ export default defineConfig(({ mode }) => {
         devOptions: { enabled: false },
       }),
     ],
-    server: { host: '0.0.0.0', port: 5173, strictPort: true },
+    server: {
+      host: '0.0.0.0',
+      port: 5173,
+      strictPort: true,
+      watch: { ignored: ['**/artifacts/**', '**/playwright-report/**', '**/test-results/**'] },
+    },
     preview: { host: '0.0.0.0', port: 4173, strictPort: true },
     build: {
       outDir: 'dist',

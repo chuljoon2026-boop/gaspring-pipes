@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Camera, CameraOff, Crosshair, Layers3, RefreshCw, ScanLine, X } from 'lucide-react'
+import { FACILITIES } from '../network'
 
 const PipeScene = lazy(() => import('./PipeScene'))
 
@@ -9,9 +10,11 @@ export default function ARView({ onClose }: { onClose: () => void }) {
   const mountedRef = useRef(true)
   const requestRef = useRef(0)
   const [camera, setCamera] = useState<'off' | 'loading' | 'on'>('off')
-  const [message, setMessage] = useState('카메라 없이도 AR 배관 배치를 시연할 수 있습니다.')
+  const [message, setMessage] = useState('')
   const [reset, setReset] = useState(0)
-  const [zones, setZones] = useState(true)
+  const [structures, setStructures] = useState(true)
+  const [selected, setSelected] = useState('GP-001')
+  const facility = FACILITIES[selected] ?? FACILITIES['GP-001']
 
   useEffect(() => {
     mountedRef.current = true
@@ -28,12 +31,12 @@ export default function ARView({ onClose }: { onClose: () => void }) {
     streamRef.current = null
     if (videoRef.current) videoRef.current.srcObject = null
     setCamera('off')
-    setMessage('시뮬레이션 화면으로 전환했습니다.')
+    setMessage('카메라를 껐습니다.')
   }
 
   async function startCamera() {
     if (!navigator.mediaDevices?.getUserMedia || !window.isSecureContext) {
-      setMessage('카메라는 HTTPS 또는 localhost에서 사용할 수 있습니다. 시뮬레이션으로 계속하세요.')
+      setMessage('카메라를 사용하려면 HTTPS로 접속하세요.')
       return
     }
     setCamera('loading')
@@ -54,14 +57,14 @@ export default function ARView({ onClose }: { onClose: () => void }) {
       }
       if (mountedRef.current && request === requestRef.current) {
         setCamera('on')
-        setMessage('실제 카메라 위에 가상 배관을 표시합니다. 위치 정합은 시뮬레이션입니다.')
+        setMessage('카메라 영상 위에 배관을 표시합니다.')
       }
     } catch {
       if (!mountedRef.current || request !== requestRef.current) return
       streamRef.current?.getTracks().forEach((track) => track.stop())
       streamRef.current = null
       setCamera('off')
-      setMessage('카메라에 접근할 수 없습니다. 권한을 확인하거나 시뮬레이션으로 계속하세요.')
+      setMessage('카메라에 접근할 수 없습니다. 브라우저 권한을 확인하세요.')
     }
   }
 
@@ -83,16 +86,26 @@ export default function ARView({ onClose }: { onClose: () => void }) {
       </div>
       <div className="ar-scene">
         <Suspense fallback={<div className="scene-loading">AR 장면을 준비하고 있습니다</div>}>
-          <PipeScene mode="ar" showPipes showZones={zones} showLabels resetKey={reset} />
+          <PipeScene
+            mode="ar"
+            showPipes
+            showZones={false}
+            showLabels
+            showContext={false}
+            showStructures={structures}
+            selectedId={selected}
+            onSelectPipe={setSelected}
+            resetKey={reset}
+          />
         </Suspense>
       </div>
       <header className="ar-top">
         <div>
           <span className="ar-tag">
-            <ScanLine size={15} /> AR SIMULATION
+            <ScanLine size={15} /> YS-001
           </span>
-          <h1>현장 위에, 배관을 보다</h1>
-          <p><span className="private-place">여수산단 A-12 구역</span> · YS-001</p>
+          <h1>배관 AR</h1>
+          <p>여수산단</p>
         </div>
         <button className="ar-round" onClick={onClose} aria-label="AR 닫기">
           <X />
@@ -110,10 +123,10 @@ export default function ARView({ onClose }: { onClose: () => void }) {
           <RefreshCw size={19} />
         </button>
         <button
-          className={`ar-round ${zones ? 'selected' : ''}`}
-          onClick={() => setZones((value) => !value)}
-          aria-label="AR 위험구역 표시"
-          aria-pressed={zones}
+          className={`ar-round ${structures ? 'selected' : ''}`}
+          onClick={() => setStructures((value) => !value)}
+          aria-label="AR 구조물 표시"
+          aria-pressed={structures}
         >
           <Layers3 size={19} />
         </button>
@@ -121,13 +134,14 @@ export default function ARView({ onClose }: { onClose: () => void }) {
       <div className="ar-bottom">
         <div className="ar-measure">
           <span>
-            <i /> GAS PIPE
+            <i /> {facility.kind}
           </span>
           <strong>
-            1.2 <small>m 깊이</small>
+            {facility.depth} <small>m 심도</small>
           </strong>
           <strong>
-            300 <small>mm 직경</small>
+            {facility.dimensions || facility.diameter}{' '}
+            <small>{facility.dimensions ? '' : 'mm 외경'}</small>
           </strong>
         </div>
         <p className="ar-status" role="status">
@@ -142,10 +156,10 @@ export default function ARView({ onClose }: { onClose: () => void }) {
           {camera === 'loading'
             ? '카메라 연결 중…'
             : camera === 'on'
-              ? '시뮬레이션으로 전환'
+              ? '카메라 끄기'
               : '현장 카메라 켜기'}
         </button>
-        <p className="ar-caption">AR 시연 · 실제 배관 위치와 일치하지 않는 가상 화면</p>
+        <p className="ar-caption">위치 정합 미연결</p>
       </div>
     </div>
   )
