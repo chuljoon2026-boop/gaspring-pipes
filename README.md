@@ -1,6 +1,7 @@
 # 여수산단 배관 조회
 
-공개 사이트: https://site-ys001.sapp05034.chatgpt.site/?location=YS-001
+공개 주소: https://claude.ai/code/artifact/9cf8f711-c223-4fab-9f77-13b4946837d9 (단일 파일 아티팩트, 공유 설정 필요)
+이전 주소: https://site-ys001.sapp05034.chatgpt.site/?location=YS-001 (codex Sites, 이전 버전)
 
 QR 현장 진입, 현장 신고 작성, 작업자 접속, 지하 관로 3D·AR 조회를 제공합니다.
 
@@ -38,14 +39,23 @@ Node.js 22.12 이상. `http://localhost:5173/?location=YS-001`로 접속합니�
 ## QR
 
 ```bash
-npm run qr -- --url https://site-ys001.sapp05034.chatgpt.site/ --location YS-001
+npm run qr -- --url https://claude.ai/code/artifact/9cf8f711-c223-4fab-9f77-13b4946837d9 --exact
 ```
 
 `artifacts/qr/`에 PNG, SVG, 인쇄 HTML, 연결 주소 JSON을 생성합니다. 공개 주소는 PC 실행 여부와 관계없이 열립니다.
 
 ## 배포
 
-Sites 프로젝트는 `.openai/hosting.json`의 `project_id`를 재사용합니다. 검증한 소스를 원격에 push하고 `git rev-parse --verify HEAD`의 전체 SHA를 사용합니다. 빌드 성공 후 `.openai/hosting.json`과 `dist/`만 tar로 묶어 버전을 저장하고 공개 배포합니다. 현재 접근 범위는 public입니다. 사용자 문서나 로컬 산출물을 소스 배포에 포함하지 않습니다.
+현재 공개 주소는 claude.ai 아티팩트입니다. 앱 전체를 한 HTML 파일로 묶어 올립니다.
+
+```bash
+npx vite build --config scripts/artifact.vite.config.ts
+node scripts/inline-artifact.mjs   # artifacts/yeosu-pipes.html
+```
+
+`artifacts/yeosu-pipes.html`을 같은 아티팩트 주소에 다시 게시하면 QR은 그대로 유지됩니다. 아티팩트는 기본 비공개이므로 게시 후 공유 메뉴에서 공개로 바꿔야 QR 접속이 됩니다. 단일 파일 페이지에는 서비스 워커·설치 매니페스트가 없고, 호스트 프레임 정책에 따라 AR 카메라가 열리지 않을 수 있습니다.
+
+이전 codex Sites 배포 절차는 다음과 같습니다. Sites 프로젝트는 `.openai/hosting.json`의 `project_id`를 재사용합니다. 검증한 소스를 원격에 push하고 `git rev-parse --verify HEAD`의 전체 SHA를 사용합니다. 빌드 성공 후 `.openai/hosting.json`과 `dist/`만 tar로 묶어 버전을 저장하고 공개 배포합니다. 현재 접근 범위는 public입니다. 사용자 문서나 로컬 산출물을 소스 배포에 포함하지 않습니다.
 
 ## 주요 파일
 

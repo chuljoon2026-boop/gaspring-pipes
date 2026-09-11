@@ -17,6 +17,7 @@ async function main() {
       url: { type: 'string' },
       'base-url': { type: 'string' },
       location: { type: 'string', default: 'YS-001' },
+      exact: { type: 'boolean', default: false },
       help: { type: 'boolean', short: 'h', default: false },
     },
     strict: true,
@@ -24,7 +25,7 @@ async function main() {
   })
   if (values.help) {
     console.log(
-      'Usage: npm run qr -- --url https://your-site.vercel.app/ --location YS-001\nAlias: --base-url. Default: http://localhost:5173/ (desktop only).\nFiles: artifacts/qr/YS-001.png, YS-001.svg, YS-001.html, urls.json',
+      'Usage: npm run qr -- --url https://your-site.vercel.app/ --location YS-001\nAlias: --base-url. Default: http://localhost:5173/ (desktop only).\n--exact keeps the URL as given (no trailing slash or location query) for hosts that route by path.\nFiles: artifacts/qr/YS-001.png, YS-001.svg, YS-001.html, urls.json',
     )
     return
   }
@@ -46,9 +47,11 @@ async function main() {
   ) {
     throw new Error('Use an HTTP(S) URL without embedded credentials.')
   }
-  if (!url.pathname.endsWith('/') && !/\.[a-z0-9]+$/i.test(url.pathname)) url.pathname += '/'
-  url.searchParams.set('location', values.location)
-  url.hash = ''
+  if (!values.exact) {
+    if (!url.pathname.endsWith('/') && !/\.[a-z0-9]+$/i.test(url.pathname)) url.pathname += '/'
+    url.searchParams.set('location', values.location)
+    url.hash = ''
+  }
   const finalUrl = url.toString()
   const localOnly = ['localhost', '127.0.0.1', '[::1]', '0.0.0.0'].includes(url.hostname)
   const warning = localOnly
