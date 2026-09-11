@@ -47,14 +47,14 @@ npm run qr -- --url https://chuljoon2026-boop.github.io/gaspring-pipes/ --locati
 
 ## 배포
 
-공개 사이트는 GitHub Pages(`chuljoon2026-boop/gaspring-pipes`, 브랜치 `gh-pages`)입니다. 하위 경로 빌드 결과를 그대로 올립니다.
+공개 사이트는 GitHub Pages(`chuljoon2026-boop/gaspring-pipes`)입니다. `main`에 push하면 `.github/workflows/deploy.yml`이 하위 경로(`BASE_PATH=/gaspring-pipes/`)로 빌드해 배포합니다. 로컬 원격 이름은 `github`입니다.
 
 ```bash
-BASE_PATH=/gaspring-pipes/ npm run build   # Git Bash에서는 MSYS_NO_PATHCONV=1 추가
-# dist/ 내용을 .nojekyll과 함께 gh-pages 브랜치로 push
+git push github main
+gh run watch --repo chuljoon2026-boop/gaspring-pipes
 ```
 
-`.github/workflows/deploy.yml`은 main push 시 Actions로 같은 배포를 수행하지만, 이를 push하려면 `workflow` 권한이 있는 GitHub 토큰이 필요합니다.
+로컬에서 같은 빌드를 확인하려면 `BASE_PATH=/gaspring-pipes/ npm run build`를 실행합니다(Git Bash에서는 `MSYS_NO_PATHCONV=1` 추가). `gh-pages` 브랜치는 Actions 권한이 없던 첫 배포의 산출물이며 더 이상 사용하지 않습니다.
 
 보조 주소인 claude.ai 아티팩트는 앱 전체를 한 HTML 파일로 묶어 올립니다.
 
