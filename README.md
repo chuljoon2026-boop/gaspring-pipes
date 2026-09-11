@@ -1,6 +1,7 @@
 # 여수산단 배관 조회
 
-공개 주소: https://claude.ai/code/artifact/9cf8f711-c223-4fab-9f77-13b4946837d9 (단일 파일 아티팩트, 공유 설정 필요)
+공개 사이트: https://chuljoon2026-boop.github.io/gaspring-pipes/?location=YS-001
+보조 주소: https://claude.ai/code/artifact/9cf8f711-c223-4fab-9f77-13b4946837d9 (단일 파일 아티팩트, 공유 설정 필요)
 이전 주소: https://site-ys001.sapp05034.chatgpt.site/?location=YS-001 (codex Sites, 이전 버전)
 
 QR 현장 진입, 현장 신고 작성, 작업자 접속, 지하 관로 3D·AR 조회를 제공합니다.
@@ -39,14 +40,23 @@ Node.js 22.12 이상. `http://localhost:5173/?location=YS-001`로 접속합니�
 ## QR
 
 ```bash
-npm run qr -- --url https://claude.ai/code/artifact/9cf8f711-c223-4fab-9f77-13b4946837d9 --exact
+npm run qr -- --url https://chuljoon2026-boop.github.io/gaspring-pipes/ --location YS-001
 ```
 
 `artifacts/qr/`에 PNG, SVG, 인쇄 HTML, 연결 주소 JSON을 생성합니다. 공개 주소는 PC 실행 여부와 관계없이 열립니다.
 
 ## 배포
 
-현재 공개 주소는 claude.ai 아티팩트입니다. 앱 전체를 한 HTML 파일로 묶어 올립니다.
+공개 사이트는 GitHub Pages(`chuljoon2026-boop/gaspring-pipes`, 브랜치 `gh-pages`)입니다. 하위 경로 빌드 결과를 그대로 올립니다.
+
+```bash
+BASE_PATH=/gaspring-pipes/ npm run build   # Git Bash에서는 MSYS_NO_PATHCONV=1 추가
+# dist/ 내용을 .nojekyll과 함께 gh-pages 브랜치로 push
+```
+
+`.github/workflows/deploy.yml`은 main push 시 Actions로 같은 배포를 수행하지만, 이를 push하려면 `workflow` 권한이 있는 GitHub 토큰이 필요합니다.
+
+보조 주소인 claude.ai 아티팩트는 앱 전체를 한 HTML 파일로 묶어 올립니다.
 
 ```bash
 npx vite build --config scripts/artifact.vite.config.ts
