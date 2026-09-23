@@ -52,7 +52,7 @@ function Factory({ x, z, width, height, depth = 6 }: { x: number; z: number; wid
     <Box position={[0, height * 0.73, depth / 2 + 0.018]} size={[width * 0.88, 0.85, 0.04]} color="#9cb1ac" />
     <Box position={[width * -0.25, 1.5, depth / 2 + 0.025]} size={[3.1, 3, 0.06]} color="#afbbb1" />
     <Box position={[width * 0.22, height + 0.58, 0]} size={[2.4, 0.9, 1.7]} color="#c5d0c6" />
-    <Html position={[0, height + 1.2, 0]} center zIndexRange={[2, 0]}><span className="private-map-name" aria-label="건물명 비공개">산단 생산시설</span></Html>
+    <Html position={[0, height + 1.2, 0]} center zIndexRange={[2, 0]}><span className="context-map-label" aria-label="산단 생산시설">산단 생산시설</span></Html>
   </group>
 }
 
@@ -117,7 +117,7 @@ function Street({ underground, opacity, context, section, ar }: { underground: b
     {[-0.12, 0.12].map(z => <Box key={z} position={[0, 0.016, z]} size={[63.8, 0.018, 0.1]} color="#d8bf7f" opacity={underground ? 0.38 : 1} />)}
     {[-8, -4, 4, 8].flatMap(z => Array.from({ length: 10 }, (_, i) => <Box key={`${z}-${i}`} position={[-29 + i * 6, 0.016, z]} size={[3, 0.014, 0.12]} color="#f0f0e0" opacity={underground ? 0.3 : 1} />))}
     {context && !ar && !section && <ContextBuildings />}
-    {context && !ar && !section && <Html position={[23, 0.2, 0]} center zIndexRange={[2, 0]}><span className="private-map-name" aria-label="도로명 비공개">산단 도로명</span></Html>}
+    {context && !ar && !section && <Html position={[23, 0.2, 0]} center zIndexRange={[2, 0]}><span className="context-map-label" aria-label="산단 내부도로">산단 내부도로</span></Html>}
   </group>
 }
 

@@ -17,7 +17,7 @@
 .pipe-scene-fallback strong { color: #2c493b; font-size: 15px; }
 .pipe-scene-fallback button { margin-top: 6px; padding: 8px 15px; border: 1px solid #cedbd1; border-radius: 7px; background: #fff; color: #28715d; cursor: pointer; font-family: inherit; }
 .pipe-scene--ar { background: transparent; }
-.private-map-name { display: block; filter: blur(4px); user-select: none; pointer-events: none; white-space: nowrap; background: #ffffff9c; color: #657b6c; font-size: 12px; padding: 3px 10px; border-radius: 4px; }
+.context-map-label { display: block; user-select: none; pointer-events: none; white-space: nowrap; background: #ffffff9c; color: #657b6c; font-size: 12px; padding: 3px 10px; border-radius: 4px; }
 .section-depth-label { display: block; padding: 1px 3px; white-space: nowrap; font-size: 10px; line-height: 1.5; color: #556e5e; background: #e8ede7df; }
 .crossing-clearance { display: flex; gap: 5px; white-space: nowrap; padding: 5px 8px; background: #fbfdf8f0; border: 1px solid #9bb5a5; border-radius: 5px; color: #496557; font-size: 11px; }
 .crossing-clearance b { color: #274e3d; }

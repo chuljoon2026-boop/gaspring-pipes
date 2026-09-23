@@ -35,10 +35,10 @@ function collectErrors(page: Page) {
 
 test('QR 첫 화면은 핵심 기능을 보여주고 잘못된 QR와 무인증 배관 경로를 처리한다', async ({ page }, testInfo) => {
   await page.goto(markerUrl)
-  await expect(page.getByRole('heading', { name: '현장 공사 조회', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '미신고 지역', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: '작업자 접속', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: '현장 제보', exact: true }).and(page.locator('.citizen-report'))).toBeVisible()
-  await expect(page.getByRole('status')).toContainText('공사 내역 조회 불가')
+  await expect(page.getByRole('status')).toContainText('현장 확인이 필요한 구간입니다')
   await expect(page.locator('canvas')).toBeVisible()
   await checkLayout(page)
   await capture(page, testInfo, 'home')
@@ -54,7 +54,7 @@ test('QR 첫 화면은 핵심 기능을 보여주고 잘못된 QR와 무인증 �
   await page.getByRole('link', { name: 'YS-001 열기', exact: true }).click()
   await expect(page).toHaveURL(/location=YS-001$/)
   await page.goto(`${markerUrl}#__proto__`)
-  await expect(page.getByRole('heading', { name: '현장 공사 조회', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '미신고 지역', exact: true })).toBeVisible()
 })
 
 test('새 브라우저에서 정보를 입력하지 않고 바로 열람하여 배관을 확인한다', async ({ page }) => {
@@ -212,9 +212,9 @@ test('관로 심도·규격과 시설 필터·보호판 분리·레이어 표시
   await expect(page.getByRole('button', { name: '수소 GP-001 상세 정보', exact: true })).toHaveCount(0)
   await labels.click()
   await expect(page.getByRole('button', { name: '수소 GP-001 상세 정보', exact: true })).toBeVisible()
-  await expect(page.locator('.private-map-name').first()).toHaveCSS('filter', /blur\([1-9]/)
+  await expect(page.locator('.context-map-label').first()).toHaveCSS('filter', 'none')
   await page.getByRole('switch', { name: '주변 건물·도로', exact: true }).click()
-  await expect(page.locator('.private-map-name')).toHaveCount(0)
+  await expect(page.locator('.context-map-label')).toHaveCount(0)
   await page.getByRole('slider', { name: '노면 표시', exact: true }).press('End')
   await expect(page.getByRole('slider', { name: '노면 표시', exact: true })).toHaveValue('0.85')
   await checkLayout(page)

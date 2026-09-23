@@ -57,7 +57,8 @@ function Sources() {
       </summary>
       <p>
         여수산단 공개자료의 관종과 구조를 재구성했습니다. 관로 좌표·관경·심도는 개별 사업자의 실측
-        도면과 연결되지 않았습니다.
+        도면과 연결되지 않았습니다. ‘미신고 지역’은 화면에 설정된 구간 상태이며, 기관의 실시간
+        공사 신고 내역과 연결되어 있지 않습니다.
       </p>
       {MODEL_SOURCES.map((s) => (
         <a key={s.url} href={s.url} target="_blank" rel="noreferrer">
@@ -193,9 +194,9 @@ function Home({ go }: { go: (p: Page) => void }) {
     <>
       <section className="citizen-home" aria-labelledby="site-lookup-title">
         <div className="citizen-title">
-          <span className="eyebrow">여수산단 · 현장 정보</span>
-          <h1 id="site-lookup-title">현장 공사 조회</h1>
-          <p>QR로 연결된 구간의 공사 정보를 확인하세요.</p>
+          <span className="eyebrow">현장 공사 조회 · 여수산단</span>
+          <h1 id="site-lookup-title">미신고 지역</h1>
+          <p>굴착 작업이 보이면 현장 정보를 알려주세요.</p>
         </div>
         <div className="location-card">
           <div>
@@ -206,8 +207,8 @@ function Home({ go }: { go: (p: Page) => void }) {
         </div>
         <div className="construction-status" role="status">
           <span className="status-icon"><CircleAlert size={27} /></span>
-          <h2>공사 내역 조회 불가</h2>
-          <p>공사 정보가 연결되지 않았습니다.</p>
+          <h2>현장 확인이 필요한 구간입니다</h2>
+          <p>작업 위치와 현장 사진을 제보할 수 있습니다.</p>
         </div>
         <button className="action primary citizen-report" onClick={() => go('report')}>
           <FilePenLine size={20} />

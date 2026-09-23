@@ -609,7 +609,6 @@ input::placeholder {
 .viewer-location > span > strong,
 .qr-print-card > h3,
 #report-location {
-  filter: blur(4px);
   user-select: none;
 }
 .facility-description, .model-reference { color: #617268; font-size: 12px; line-height: 1.7; }
