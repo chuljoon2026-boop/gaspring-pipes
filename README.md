@@ -1,10 +1,10 @@
-# 여수산단 배관 조회
+# 현장 공사 조회 · 여수산단
 
 공개 사이트: https://chuljoon2026-boop.github.io/gaspring-pipes/?location=YS-001
 보조 주소: https://claude.ai/code/artifact/9cf8f711-c223-4fab-9f77-13b4946837d9 (단일 파일 아티팩트, 공유 설정 필요)
 이전 주소: https://site-ys001.sapp05034.chatgpt.site/?location=YS-001 (codex Sites, 이전 버전)
 
-QR 현장 진입, 현장 신고 작성, 작업자 접속, 지하 관로 3D·AR 조회를 제공합니다.
+QR 현장 진입, 현장 제보 작성, 작업자 접속, 지하 관로 3D·AR 조회를 제공합니다. 첫 화면과 안내판은 `가스프링_part 7,8_ver1.pptx`의 시민 조회 흐름과 남색·파란색 구성을 참고했습니다.
 
 ## 화면
 
@@ -35,15 +35,21 @@ npm run test:e2e
 
 Node.js 22.12 이상. `http://localhost:5173/?location=YS-001`로 접속합니다.
 
-작업자 접속 화면의 **열람 정보 채우기 → 배관 조회**로 진입합니다. 접속 코드 `YS-2026-001`, 비밀번호 `1234`, 이름은 빈 값이 아니면 됩니다.
+작업자 접속 화면의 **바로 열람**으로 입력 없이 배관을 볼 수 있습니다. 수동 접속 시 접속 코드 `YS-2026-001`, 비밀번호 `1234`, 이름은 빈 값이 아니면 됩니다.
 
 ## QR
 
 ```bash
-npm run qr -- --url https://chuljoon2026-boop.github.io/gaspring-pipes/ --location YS-001
+npm run qr -- --publish
 ```
 
-`artifacts/qr/`에 PNG, SVG, 인쇄 HTML, 연결 주소 JSON을 생성합니다. 공개 주소는 PC 실행 여부와 관계없이 열립니다.
+기본 연결 주소는 현재 공개 사이트입니다. `artifacts/qr/`에 QR PNG(1200×1200), SVG, 안내판 PNG(1500×2000), 인쇄 HTML(150×200mm), 연결 주소 JSON을 생성합니다. `--publish`는 공개 주소용 파일 4종을 `public/qr/`에도 복사하여 사이트에서 내려받을 수 있게 합니다. 공개 주소는 PC 실행 여부와 관계없이 열립니다. 생성에는 로컬 Playwright Chromium이 필요합니다.
+
+- QR 이미지: https://chuljoon2026-boop.github.io/gaspring-pipes/qr/YS-001.png
+- 안내판: https://chuljoon2026-boop.github.io/gaspring-pipes/qr/YS-001-marker.png
+- 인쇄: https://chuljoon2026-boop.github.io/gaspring-pipes/qr/YS-001.html
+
+별도 주소용 QR은 `npm run qr -- --url https://your-site.example/`로 생성합니다. 기존 PPT에 삽입된 QR은 이전 Sites 주소를 가리키므로 새 PNG 또는 SVG로 교체해 사용합니다.
 
 ## 배포
 

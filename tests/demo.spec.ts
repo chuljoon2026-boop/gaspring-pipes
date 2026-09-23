@@ -2,7 +2,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import sharp from 'sharp'
 
 const markerUrl = '/?location=YS-001'
-const unwantedCopy = /가스온|가상\s*현장|시[연현]용|굴착\s*주의\s*영역|신고\s*내역|홈\s*화면에\s*추가|시민의식/
+const unwantedCopy = /가스온|가상\s*현장|시[연현]용|굴착\s*주의\s*영역|신고\s*내역|홈\s*화면에\s*추가|시민의식|샘플|sample|워터마크|watermark/i
 
 async function frame(page: Page) {
   await page.evaluate(async () => {
@@ -21,8 +21,7 @@ async function checkLayout(page: Page) {
 }
 async function authenticate(page: Page) {
   await page.goto(`${markerUrl}#login`)
-  await page.getByRole('button', { name: '열람 정보 채우기', exact: true }).click()
-  await page.getByRole('button', { name: '배관 조회', exact: true }).click()
+  await page.getByRole('button', { name: '바로 열람', exact: true }).click()
   await expect(page).toHaveURL(/location=YS-001#worker$/)
   await expect(page.locator('canvas')).toBeVisible()
   await expect(page.getByRole('button', { name: '수소 GP-001 상세 정보', exact: true })).toBeVisible()
@@ -36,12 +35,11 @@ function collectErrors(page: Page) {
 
 test('QR 첫 화면은 핵심 기능을 보여주고 잘못된 QR와 무인증 배관 경로를 처리한다', async ({ page }, testInfo) => {
   await page.goto(markerUrl)
-  await expect(page.getByRole('heading', { name: '여수산단 도로 하부 관로', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: '3D 배관 열기', exact: true })).toBeVisible()
-  await expect(page.locator('.entry-report').getByRole('button', { name: '현장 신고', exact: true })).toBeVisible()
-  await expect(page.getByText('조회 미연결', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '현장 공사 조회', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '작업자 접속', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '현장 제보', exact: true }).and(page.locator('.citizen-report'))).toBeVisible()
+  await expect(page.getByRole('status')).toContainText('공사 내역 조회 불가')
   await expect(page.locator('canvas')).toBeVisible()
-  await expect(page.locator('.place-muted')).toHaveCSS('filter', /blur\([1-9]/)
   await checkLayout(page)
   await capture(page, testInfo, 'home')
   for (const route of ['worker', 'ar']) {
@@ -56,14 +54,29 @@ test('QR 첫 화면은 핵심 기능을 보여주고 잘못된 QR와 무인증 �
   await page.getByRole('link', { name: 'YS-001 열기', exact: true }).click()
   await expect(page).toHaveURL(/location=YS-001$/)
   await page.goto(`${markerUrl}#__proto__`)
-  await expect(page.getByRole('heading', { name: '여수산단 도로 하부 관로', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '현장 공사 조회', exact: true })).toBeVisible()
 })
 
-test('사진 형식·용량을 검사하고 신고 내용을 저장하여 새로고침 후에도 확인한다', async ({ page }, testInfo) => {
+test('새 브라우저에서 정보를 입력하지 않고 바로 열람하여 배관을 확인한다', async ({ page }) => {
+  await page.goto(markerUrl)
+  await page.getByRole('button', { name: '작업자 접속', exact: true }).click()
+  await expect(page.getByRole('heading', { name: '작업자 접속', exact: true })).toBeVisible()
+  for (const label of ['접속 코드', '이름', '비밀번호']) {
+    await expect(page.getByLabel(label, { exact: true })).toHaveValue('')
+  }
+  await page.getByRole('button', { name: '바로 열람', exact: true }).click()
+  await expect(page).toHaveURL(/location=YS-001#worker$/)
+  await expect(page.getByRole('button', { name: '수소 GP-001 상세 정보', exact: true })).toBeVisible()
+  await page.reload({ waitUntil: 'domcontentloaded' })
+  await expect(page.getByRole('button', { name: '로그아웃', exact: true })).toBeVisible()
+  await checkLayout(page)
+})
+
+test('사진 형식·용량을 검사하고 제보 내용을 저장하여 새로고침 후에도 확인한다', async ({ page }, testInfo) => {
   await page.goto(`${markerUrl}#report`)
   await expect(page.getByLabel('위치', { exact: true })).toHaveValue('YS-001 · 여수산단')
   await expect(page.getByLabel('위치', { exact: true })).toHaveAttribute('readonly', '')
-  await page.getByRole('button', { name: '신고 내용 저장', exact: true }).click()
+  await page.getByRole('button', { name: '제보 내용 저장', exact: true }).click()
   expect(await page.getByLabel('작업 내용', { exact: true }).evaluate((el: HTMLTextAreaElement) => el.validity.valueMissing)).toBe(true)
   const upload = page.locator('input[type="file"]')
   await upload.setInputFiles({ name: 'invalid.txt', mimeType: 'text/plain', buffer: Buffer.from('not an image') })
@@ -80,9 +93,9 @@ test('사진 형식·용량을 검사하고 신고 내용을 저장하여 새로
   await page.getByLabel('작업 내용', { exact: true }).fill(reason)
   await expect(page.getByText(/기관 전송 미연결/)).toBeVisible()
   await checkLayout(page)
-  await page.getByRole('button', { name: '신고 내용 저장', exact: true }).click()
+  await page.getByRole('button', { name: '제보 내용 저장', exact: true }).click()
   await expect(page).toHaveURL(/location=YS-001#complete$/)
-  await expect(page.getByRole('heading', { name: '신고 내용 저장 완료', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '제보 내용 저장 완료', exact: true })).toBeVisible()
   await expect(page.getByText(reason, { exact: true })).toBeVisible()
   await page.reload({ waitUntil: 'domcontentloaded' })
   await expect(page.getByText(reason, { exact: true })).toBeVisible()
@@ -254,6 +267,14 @@ test('AR은 카메라 거부 후에도 동작하고 카메라 끄기와 AR 종�
 test('QR은 쿼리와 현장 코드를 보존하고 자격증명 주소를 거부하며 PNG로 저장된다', async ({ page }, testInfo) => {
   await page.goto(`${markerUrl}#qr`)
   await expect(page.getByRole('img', { name: '현장 접속 QR', exact: true })).toBeVisible()
+  const markerDownload = page.getByRole('link', { name: '안내판 저장', exact: true })
+  const markerPrint = page.getByRole('link', { name: '인쇄용 안내판', exact: true })
+  await expect(markerDownload).toBeVisible()
+  await expect(markerDownload).toHaveAttribute('href', '/qr/YS-001-marker.png')
+  await expect(markerDownload).toHaveAttribute('download', 'YS-001-현장안내판.png')
+  await expect(markerPrint).toBeVisible()
+  await expect(markerPrint).toHaveAttribute('href', '/qr/YS-001.html')
+  await checkLayout(page)
   await page.getByText('연결 주소 변경', { exact: true }).click()
   await page.getByLabel('웹페이지 주소', { exact: true }).fill('https://demo:secret@example.com/field')
   await page.getByRole('button', { name: 'QR 생성', exact: true }).click()
@@ -261,6 +282,8 @@ test('QR은 쿼리와 현장 코드를 보존하고 자격증명 주소를 거�
   await page.getByLabel('웹페이지 주소', { exact: true }).fill('https://example.com/field?source=qr&location=OLD#login')
   await page.getByRole('button', { name: 'QR 생성', exact: true }).click()
   await expect(page.getByText('https://example.com/field?source=qr&location=YS-001', { exact: true })).toBeVisible()
+  await expect(markerDownload).toHaveCount(0)
+  await expect(markerPrint).toHaveCount(0)
   await expect(page.getByRole('img', { name: '현장 접속 QR', exact: true })).toHaveAttribute('src', /^data:image\/png;base64,/)
   const pending = page.waitForEvent('download')
   await page.getByRole('link', { name: 'QR 저장', exact: true }).click()

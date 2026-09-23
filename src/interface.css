@@ -1,7 +1,7 @@
 .field-app {
-  color: #203831;
+  color: #142b50;
   min-height: 100vh;
-  background: #f4f6f5;
+  background: #fff;
 }
 .field-header {
   height: 76px;
@@ -10,7 +10,7 @@
   justify-content: space-between;
   gap: 20px;
   padding: 0 max(28px, calc((100vw - 1560px) / 2));
-  border-bottom: 1px solid #dce3df;
+  border-bottom: 1px solid #e8ecf3;
   background: #fff;
 }
 .field-brand {
@@ -24,7 +24,7 @@
   place-items: center;
   width: 34px;
   height: 34px;
-  background: #1c5043;
+  background: #2858d6;
   border-radius: 9px;
   color: #fff;
 }
@@ -51,8 +51,8 @@
   font-weight: 600;
 }
 .field-header nav .is-active {
-  background: #e9f0ec;
-  color: #205544;
+  background: #edf2fe;
+  color: #2858d6;
 }
 .field-main {
   max-width: 1560px;
@@ -168,16 +168,16 @@
   margin-left: auto;
 }
 .action.primary {
-  background: #204f42;
+  background: #2858d6;
   color: white;
 }
 .action.primary:hover {
-  background: #173d32;
+  background: #204bbf;
 }
 .action.secondary {
-  border: 1px solid #d5e1d9;
-  color: #315746;
-  background: #f8faf8;
+  border: 1px solid #dbe3f1;
+  color: #284d95;
+  background: #f7f9fe;
 }
 .action.disabled {
   opacity: 0.45;
@@ -649,9 +649,12 @@
 }
 .prefill-button {
   font-size: 12px;
-  color: #65816b;
-  padding: 6px;
-  text-decoration: underline;
+  color: #2858d6;
+  padding: 13px;
+  border: 1px solid #dbe3f1;
+  border-radius: 8px;
+  background: #f7f9fe;
+  font-weight: 650;
 }
 .access-note,
 .qr-settings {
@@ -825,7 +828,7 @@
 }
 .qr-panel > p {
   font-size: 12px;
-  color: #7d9378;
+  color: #62738e;
 }
 .qr-address {
   display: flex;
@@ -833,14 +836,14 @@
   gap: 10px;
   margin: 20px 0;
   padding: 12px;
-  background: #f5f8f2;
+  background: #f4f6fa;
   border-radius: 7px;
   text-align: left;
 }
 .qr-address code {
   font-size: 11px;
   overflow-wrap: anywhere;
-  color: #748b68;
+  color: #62738e;
   flex: 1;
 }
 .qr-settings {
@@ -849,6 +852,157 @@
 }
 .qr-settings form {
   margin-top: 15px;
+}
+.field-main--home {
+  max-width: 1060px;
+  padding-top: 40px;
+}
+.citizen-home {
+  max-width: 520px;
+  margin: 0 auto 48px;
+}
+.citizen-title {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.citizen-title .eyebrow {
+  color: #6d7b92;
+  letter-spacing: 1px;
+}
+.citizen-title h1 {
+  margin: 10px 0 12px;
+  color: #142b50;
+  font-size: 32px;
+  font-weight: 750;
+  letter-spacing: -1.3px;
+}
+.citizen-title p {
+  color: #6f7b91;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.location-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  border: 1px solid #e8ecf3;
+  border-radius: 12px;
+  background: #f6f7fa;
+  padding: 20px 24px;
+}
+.location-card > div {
+  display: grid;
+  gap: 5px;
+}
+.location-card > div > span {
+  font-size: 11px;
+  color: #78849a;
+}
+.location-card strong {
+  color: #142b50;
+  font-size: 23px;
+  letter-spacing: -.5px;
+}
+.location-name {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #2858d6;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.construction-status {
+  padding: 26px 18px 28px;
+  margin: 16px 0 22px;
+  border: 1px solid #f6e8bc;
+  border-radius: 12px;
+  background: #fff9ea;
+  text-align: center;
+}
+.status-icon {
+  display: grid;
+  place-items: center;
+  width: 45px;
+  height: 45px;
+  margin: 0 auto 12px;
+  border-radius: 50%;
+  color: #fff;
+  background: #e9a61e;
+}
+.construction-status h2 {
+  color: #986709;
+  font-size: 23px;
+  letter-spacing: -.8px;
+}
+.construction-status p {
+  color: #85785c;
+  font-size: 13px;
+  line-height: 1.7;
+  margin-top: 8px;
+}
+.citizen-report {
+  min-height: 55px;
+  font-size: 17px;
+  border-radius: 10px;
+  padding-left: 22px;
+}
+.citizen-report svg:last-child {
+  margin-left: 0 !important;
+  position: absolute;
+  right: 22px;
+}
+.citizen-report {
+  position: relative;
+}
+.citizen-help {
+  text-align: center;
+  color: #8691a3;
+  font-size: 11px;
+  margin-top: 12px;
+  line-height: 1.7;
+}
+.citizen-worker {
+  border-top: 1px solid #e8ecf3;
+  padding-top: 30px;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  gap: 26px;
+  align-items: center;
+}
+.citizen-worker .entry-scene {
+  height: 280px;
+  border-color: #e1e7ee;
+}
+.citizen-worker .entry-actions {
+  border: 0;
+  padding: 12px 0;
+  background: transparent;
+}
+.citizen-worker .eyebrow {
+  color: #7c889b;
+}
+.citizen-worker h2 {
+  font-size: 23px;
+  margin-top: 11px;
+  color: #243b60;
+}
+.citizen-worker p {
+  color: #73819a;
+  line-height: 1.8;
+}
+.qr-marker-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-top: 10px;
+}
+.qr-marker-actions .action {
+  font-size: 12px;
+  padding: 12px 8px;
+  gap: 7px;
+}
+.receipt-note {
+  margin: -10px 0 24px;
 }
 @media (min-width: 1600px) {
   .field-main {
@@ -1089,5 +1243,90 @@
   }
   .storage-note {
     font-size: 10px;
+  }
+  .field-main--home {
+    padding: 30px 20px 24px;
+  }
+  .citizen-home {
+    margin-bottom: 30px;
+  }
+  .citizen-title {
+    margin-bottom: 22px;
+  }
+  .citizen-title h1 {
+    font-size: 29px;
+    margin-top: 8px;
+  }
+  .citizen-title .eyebrow {
+    font-size: 10px;
+  }
+  .citizen-title p {
+    font-size: 11px;
+  }
+  .location-card {
+    padding: 17px 18px;
+  }
+  .construction-status {
+    padding: 23px 14px;
+    margin-bottom: 19px;
+  }
+  .construction-status h2 {
+    font-size: 22px;
+  }
+  .construction-status p {
+    font-size: 12px;
+  }
+  .citizen-help {
+    font-size: 10px;
+  }
+  .citizen-worker {
+    padding-top: 22px;
+    gap: 18px;
+    align-items: stretch;
+  }
+  .citizen-worker .entry-scene {
+    height: 210px;
+    order: 2;
+  }
+  .citizen-worker .entry-actions {
+    padding: 0;
+    order: 1;
+  }
+  .citizen-worker h2 {
+    font-size: 20px;
+  }
+  .citizen-worker p {
+    font-size: 11px;
+    margin-bottom: 13px;
+  }
+}
+@media (max-width: 380px) {
+  .field-header {
+    padding: 0 10px;
+    gap: 3px;
+  }
+  .field-brand {
+    gap: 5px;
+  }
+  .field-brand strong {
+    font-size: 14px;
+  }
+  .field-brand > span {
+    width: 25px;
+    height: 25px;
+  }
+  .field-header nav button {
+    padding: 10px 6px;
+    font-size: 10px;
+  }
+  .field-main--home {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+  .compact-card {
+    padding: 23px 17px;
+  }
+  .qr-marker-actions {
+    grid-template-columns: 1fr;
   }
 }

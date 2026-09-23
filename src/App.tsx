@@ -6,6 +6,7 @@ import {
   Box,
   Camera,
   Check,
+  CircleAlert,
   ChevronDown,
   Copy,
   Download,
@@ -13,6 +14,8 @@ import {
   Layers3,
   LogOut,
   Maximize,
+  MapPin,
+  Printer,
   QrCode,
   RotateCcw,
   ScanLine,
@@ -87,7 +90,7 @@ export default function App() {
     }
   }, [])
   useEffect(() => {
-    document.title = '여수산단 배관 조회'
+    document.title = '현장 공사 조회 · 여수산단 YS-001'
   }, [])
   useEffect(() => {
     if (!toast) return
@@ -112,7 +115,7 @@ export default function App() {
           <span>
             <Layers3 size={21} />
           </span>
-          <strong>배관 조회</strong>
+          <strong>현장 조회</strong>
           <small>여수산단</small>
         </button>
         <nav aria-label="메뉴">
@@ -126,7 +129,7 @@ export default function App() {
             3D 배관
           </button>
           <button className={page === 'report' ? 'is-active' : ''} onClick={() => go('report')}>
-            현장 신고
+            현장 제보
           </button>
           <button
             className={page === 'qr' ? 'is-active' : ''}
@@ -188,16 +191,32 @@ export default function App() {
 function Home({ go }: { go: (p: Page) => void }) {
   return (
     <>
-      <div className="field-title">
-        <div>
-          <span className="eyebrow">YS-001</span>
-          <h1>여수산단 도로 하부 관로</h1>
+      <section className="citizen-home" aria-labelledby="site-lookup-title">
+        <div className="citizen-title">
+          <span className="eyebrow">여수산단 · 현장 정보</span>
+          <h1 id="site-lookup-title">현장 공사 조회</h1>
+          <p>QR로 연결된 구간의 공사 정보를 확인하세요.</p>
         </div>
-        <span className="place-muted" aria-label="도로명 비공개">
-          여수산단로
-        </span>
-      </div>
-      <div className="entry-grid">
+        <div className="location-card">
+          <div>
+            <span>조회 구간</span>
+            <strong>{LOCATION.id}</strong>
+          </div>
+          <span className="location-name"><MapPin size={17} /> 여수산단</span>
+        </div>
+        <div className="construction-status" role="status">
+          <span className="status-icon"><CircleAlert size={27} /></span>
+          <h2>공사 내역 조회 불가</h2>
+          <p>공사 정보가 연결되지 않았습니다.</p>
+        </div>
+        <button className="action primary citizen-report" onClick={() => go('report')}>
+          <FilePenLine size={20} />
+          현장 제보
+          <ArrowRight size={19} />
+        </button>
+        <p className="citizen-help">현장에서 확인한 작업 내용과 사진을 남길 수 있습니다.</p>
+      </section>
+      <div className="entry-grid citizen-worker">
         <section className="entry-scene" aria-label="도로 하부 배관 개요">
           <Suspense fallback={<Loading />}>
             <PipeScene
@@ -211,23 +230,12 @@ function Home({ go }: { go: (p: Page) => void }) {
         </section>
         <aside className="entry-actions">
           <div>
-            <span className="eyebrow">배관 확인</span>
-            <h2>관로의 위치와 깊이 확인</h2>
-            <p>전체 배치 · 도로 단면 · 교차부 확대</p>
-            <button className="action primary" onClick={() => go('worker')}>
+            <span className="eyebrow">작업자 · 배관 정보</span>
+            <h2>도로 아래 배관 확인</h2>
+            <p>3D 배치와 도로 단면, 교차부 정보를 확인합니다.</p>
+            <button className="action secondary" onClick={() => go('worker')}>
               <Box size={18} />
-              3D 배관 열기
-              <ArrowRight size={18} />
-            </button>
-          </div>
-          <div className="entry-report">
-            <div>
-              <span className="eyebrow">굴착공사 등록</span>
-              <strong>조회 미연결</strong>
-            </div>
-            <button className="action secondary" onClick={() => go('report')}>
-              <FilePenLine size={18} />
-              현장 신고
+              작업자 접속
               <ArrowRight size={18} />
             </button>
           </div>
@@ -616,13 +624,16 @@ function Login({ onBack, onSuccess }: { onBack: () => void; onSuccess: (s: Sessi
           className="prefill-button"
           type="button"
           onClick={() => {
-            setPermit(LOCATION.permit)
-            setName('열람자')
-            setPassword(LOCATION.password)
-            setError('')
+            const next = { name: '열람자', permit: LOCATION.permit, locationId: LOCATION.id }
+            try {
+              saveSession(next)
+              onSuccess(next)
+            } catch {
+              setError('접속 정보를 저장할 수 없습니다.')
+            }
           }}
         >
-          열람 정보 채우기
+          바로 열람
         </button>
         <details className="access-note">
           <summary>접속 정보</summary>
@@ -709,7 +720,7 @@ function ReportForm({
         현장
       </button>
       <span className="eyebrow">YS-001</span>
-      <h1>현장 신고</h1>
+      <h1>현장 제보</h1>
       <form onSubmit={submit}>
         <label>
           위치
@@ -773,7 +784,7 @@ function ReportForm({
           기관 전송 미연결 · 내용은 이 기기에 저장되며 사진 파일은 보관하지 않습니다.
         </p>
         <button className="action primary" disabled={busy} type="submit">
-          {busy ? '저장 중' : '신고 내용 저장'}
+          {busy ? '저장 중' : '제보 내용 저장'}
           <ArrowRight size={17} />
         </button>
       </form>
@@ -786,7 +797,7 @@ function Receipt({ report, go }: { report: Report | null; go: (p: Page) => void 
       <div className="receipt-check">
         <Check size={28} />
       </div>
-      <h1>{report ? '신고 내용 저장 완료' : '저장된 내용이 없습니다'}</h1>
+      <h1>{report ? '제보 내용 저장 완료' : '저장된 내용이 없습니다'}</h1>
       {report && (
         <>
           <p className="receipt-id">{report.id}</p>
@@ -801,6 +812,7 @@ function Receipt({ report, go }: { report: Report | null; go: (p: Page) => void 
             </div>
           </dl>
           <p className="saved-reason">{report.reason}</p>
+          <p className="storage-note receipt-note">이 기기에 저장되었습니다. 기관으로 전송되지는 않았습니다.</p>
         </>
       )}
       <button className="action primary" onClick={() => go('home')}>
@@ -811,9 +823,9 @@ function Receipt({ report, go }: { report: Report | null; go: (p: Page) => void 
   )
 }
 function QRPanel({ notify }: { notify: (t: string) => void }) {
-  const initial = new URL(location.href)
-  initial.hash = ''
-  initial.search = ''
+  const initial = new URL('https://chuljoon2026-boop.github.io/gaspring-pipes/')
+  const defaultTarget = new URL(initial.href)
+  defaultTarget.searchParams.set('location', LOCATION.id)
   const [base, setBase] = useState(initial.href),
     [target, setTarget] = useState(() => {
       initial.searchParams.set('location', LOCATION.id)
@@ -828,7 +840,7 @@ function QRPanel({ notify }: { notify: (t: string) => void }) {
       width: 1200,
       margin: 4,
       errorCorrectionLevel: 'M',
-      color: { dark: '#183f37', light: '#ffffff' },
+      color: { dark: '#142b50', light: '#ffffff' },
     })
       .then((data) => {
         if (active) setQr(data)
@@ -868,7 +880,7 @@ function QRPanel({ notify }: { notify: (t: string) => void }) {
       <div className="qr-display">
         {qr ? <img src={qr} alt="현장 접속 QR" /> : <QrCode size={100} />}
       </div>
-      <p>현장 확인 · 신고 · 배관 조회</p>
+      <p>현장 공사 조회 · 현장 제보 · 배관 정보</p>
       <div className="qr-address">
         <code>{target}</code>
         <button onClick={copy} aria-label="주소 복사">
@@ -883,6 +895,18 @@ function QRPanel({ notify }: { notify: (t: string) => void }) {
         <Download size={17} />
         QR 저장
       </a>
+      {target === defaultTarget.href && (
+        <div className="qr-marker-actions">
+          <a className="action secondary" href={`${import.meta.env.BASE_URL}qr/YS-001-marker.png`} download="YS-001-현장안내판.png">
+            <Download size={17} />
+            안내판 저장
+          </a>
+          <a className="action secondary" href={`${import.meta.env.BASE_URL}qr/YS-001.html`} target="_blank" rel="noreferrer">
+            <Printer size={17} />
+            인쇄용 안내판
+          </a>
+        </div>
+      )}
       <details className="qr-settings">
         <summary>연결 주소 변경</summary>
         <form onSubmit={generate}>
