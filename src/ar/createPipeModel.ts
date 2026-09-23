@@ -25,7 +25,7 @@ function roundedPath(points: Vec3[], pipeRadius: number) {
   return path
 }
 
-/** Unscaled metre-based model. Its local bounds rest on y=0 and are centred on x/z. */
+/** Metres in the drawing coordinate system: road surface y=0, buried pipes y<0. */
 export function createPipeModel(): THREE.Group {
   const model = new THREE.Group()
   model.name = 'YS-001'
@@ -39,7 +39,10 @@ export function createPipeModel(): THREE.Group {
     const key = `${color}:${metalness}`
     let result = materials.get(key)
     if (!result) {
-      result = new THREE.MeshStandardMaterial({ color, metalness, roughness: 0.65 })
+      result = new THREE.MeshStandardMaterial({
+        color, metalness, roughness: 0.45, emissive: color, emissiveIntensity: 0.32,
+        transparent: true, opacity: 0.92,
+      })
       materials.set(key, result)
     }
     return result
@@ -74,7 +77,7 @@ export function createPipeModel(): THREE.Group {
     mesh(
       route.id,
       new THREE.TubeGeometry(path, route.points.length > 2 ? 80 : 4, route.radius, radialSegments, false),
-      material(item.bodyColor || item.color, route.id.startsWith('SW') ? 0.02 : 0.25),
+      material(item.color, route.id.startsWith('SW') ? 0.02 : 0.25),
     )
 
     // Ordinary meshes keep the model portable to USDZ; geometry is shared per route.
@@ -132,9 +135,8 @@ export function createPipeModel(): THREE.Group {
   model.updateMatrixWorld(true)
   const bounds = new THREE.Box3().setFromObject(content)
   const size = bounds.getSize(new THREE.Vector3())
-  const center = bounds.getCenter(new THREE.Vector3())
-  content.position.set(-center.x, -bounds.min.y, -center.z)
-  model.userData = { width: size.x, height: size.y, depth: size.z, units: 'metres' }
+  // Never lift the lowest point to the floor: the floor is the drawing's road datum.
+  model.userData = { width: size.x, height: size.y, depth: size.z, units: 'metres', groundY: 0 }
   model.updateMatrixWorld(true)
   return model
 }
@@ -152,30 +154,4 @@ export function disposePipeModel(model: THREE.Group): void {
   for (const geometry of geometries) geometry.dispose()
   for (const surface of materials) surface.dispose()
   model.clear()
-}
-
-/** Export a fresh placement; the caller owns the returned object URL and must revoke it. */
-export async function createQuickLookUrl(model: THREE.Group, scale: number): Promise<string> {
-  if (!Number.isFinite(scale) || scale <= 0) throw new RangeError('Model scale must be positive.')
-  const { USDZExporter } = await import('three/examples/jsm/exporters/USDZExporter.js')
-  const scene = new THREE.Scene()
-  const clone = model.clone(true)
-  clone.position.set(0, 0, 0)
-  clone.quaternion.identity()
-  clone.scale.setScalar(scale)
-  clone.visible = true
-  clone.updateMatrix()
-  scene.add(clone)
-  scene.updateMatrixWorld(true)
-  try {
-    const bytes = await new USDZExporter().parseAsync(scene, {
-      quickLookCompatible: true,
-      includeAnchoringProperties: true,
-      ar: { anchoring: { type: 'plane' }, planeAnchoring: { alignment: 'horizontal' } },
-    })
-    return URL.createObjectURL(new Blob([bytes], { type: 'model/vnd.usdz+zip' }))
-  } finally {
-    // Object3D.clone shares GPU resources; disposing the clone would break the live model.
-    scene.clear()
-  }
 }

@@ -40,21 +40,33 @@ test('QR 첫 화면은 핵심 기능을 보여주고 잘못된 QR와 무인증 �
   await expect(eocs).toBeVisible()
   await expect(eocs).toHaveAttribute('href', 'https://app.eocs.or.kr/')
   await expect(eocs).toHaveAttribute('target', '_blank')
+  await expect(page.locator('.excavation-instruction')).toHaveText('굴착공사현장 50m 이내에서아래 버튼을 눌러주세요')
+  for (const name of ['EOCS에서 휴대전화 인증', 'EOCS에서 작업 시작 신고']) {
+    await expect(page.getByRole('link', { name, exact: true })).toHaveAttribute('href', 'https://app.eocs.or.kr/')
+  }
+  await expect(page.locator('input[type="tel"], input[type="checkbox"]')).toHaveCount(0)
   await expect(page.getByText('작업 시작 신고는 기존 EOCS에서 진행합니다.', { exact: true })).toBeVisible()
   const services = page.locator('.service-shortcuts')
   await expect(services.getByRole('button')).toHaveCount(3)
-  for (const name of [/^시민 신고/, /^3D 배관/, /^바닥 AR/]) {
+  for (const name of [/^시민 신고/, /^배관 3D/, /^지하 투시 AR/]) {
     await expect(services.getByRole('button', { name })).toBeVisible()
   }
   await expect(page.locator('.site-information').getByRole('link')).toHaveCount(2)
+  await expect(page.getByRole('heading', { name: '주변 지하매설물 관리기관', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: '관리기관 연락처 확인', exact: true })).toHaveAttribute('href', 'https://app.eocs.or.kr/')
+  await expect(page.getByRole('link', { name: '인근 굴착공사 지도', exact: true })).toHaveAttribute('href', 'https://app.eocs.or.kr/')
   await expect(page.locator('.site-information').getByRole('button', { name: /지하매설물 현황/ })).toBeVisible()
   await expect(page.locator('canvas')).toBeVisible()
   await checkLayout(page)
+  const viewport = page.viewportSize()!
+  await page.setViewportSize({ width: 320, height: viewport.height })
+  await checkLayout(page)
+  await page.setViewportSize(viewport)
   await capture(page, testInfo, 'home')
   await services.getByRole('button', { name: /^시민 신고/ }).click()
   await expect(page).toHaveURL(/location=YS-001#report$/)
   await expect(page.getByRole('heading', { name: '시민 신고', exact: true })).toBeVisible()
-  for (const [name, route] of [[/^3D 배관/, 'worker'], [/^바닥 AR/, 'ar']] as const) {
+  for (const [name, route] of [[/^배관 3D/, 'worker'], [/^지하 투시 AR/, 'ar']] as const) {
     await page.goto(markerUrl)
     await services.getByRole('button', { name }).click()
     await expect(page).toHaveURL(new RegExp(`location=YS-001#${route}$`))
@@ -75,7 +87,7 @@ test('QR 첫 화면은 핵심 기능을 보여주고 잘못된 QR와 무인증 �
 
 test('새 브라우저에서 정보를 입력하지 않고 바로 열람하여 배관을 확인한다', async ({ page }) => {
   await page.goto(markerUrl)
-  await page.locator('.service-shortcuts').getByRole('button', { name: /^3D 배관/ }).click()
+  await page.locator('.service-shortcuts').getByRole('button', { name: /^배관 3D/ }).click()
   await expect(page.getByRole('heading', { name: '배관 · AR 열람', exact: true })).toBeVisible()
   await expect(page.getByRole('link', { name: /작업 시작 신고/ })).toHaveAttribute('href', 'https://app.eocs.or.kr/')
   for (const label of ['접속 코드', '이름', '비밀번호']) {

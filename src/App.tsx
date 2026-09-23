@@ -119,7 +119,7 @@ export default function App() {
           <span>
             <Layers3 size={21} />
           </span>
-          <strong>현장 조회</strong>
+          <strong>굴착공사 현장 확인</strong>
           <small>여수산단</small>
         </button>
         <nav aria-label="메뉴">
@@ -197,60 +197,69 @@ function Home({ go }: { go: (p: Page) => void }) {
     <>
       <section className="citizen-home" aria-labelledby="site-lookup-title">
         <div className="citizen-title">
-          <span className="eyebrow">현장 공사 조회 · 여수산단</span>
           <h1 id="site-lookup-title">미신고 지역</h1>
-          <p>굴착 작업이 보이면 현장 정보를 알려주세요.</p>
-        </div>
-        <div className="location-card">
-          <div>
-            <span>조회 구간</span>
-            <strong>{LOCATION.id}</strong>
-          </div>
-          <span className="location-name"><MapPin size={17} /> 여수산단</span>
+          <p className="current-location"><MapPin size={15} /> 여수산단 · {LOCATION.id}</p>
         </div>
         <div className="excavation-entry">
-          <p className="excavation-instruction">현장에서 공사 정보를 확인하세요.</p>
+          <h2 className="excavation-instruction">굴착공사현장 50m 이내에서<br />아래 버튼을 눌러주세요</h2>
+          <p className="excavation-description">휴대전화 인증 후 EOCS에서<br />현장 위치와 공사 정보를 확인합니다.</p>
+          <div className="eocs-auth-notice">
+            휴대전화 인증과 개인(위치)정보 이용 동의는<br />EOCS에서 진행됩니다.
+          </div>
+          <div className="eocs-auth-actions">
+            <a href={EOCS_URL} target="_blank" rel="noreferrer" aria-label="EOCS에서 휴대전화 인증">
+              <span>휴대전화 인증</span><strong>인증 <ExternalLink size={13} /></strong>
+            </a>
+            <a href={EOCS_URL} target="_blank" rel="noreferrer" aria-label="EOCS에서 작업 시작 신고">
+              <span>작업 시작 신고</span><strong>신고 <ExternalLink size={13} /></strong>
+            </a>
+          </div>
           <a className="excavation-circle" href={EOCS_URL} target="_blank" rel="noreferrer" aria-label="굴착현장 확인">
-            <MapPin size={30} />
             <strong>굴착현장 확인</strong>
             <span>EOCS 열기 <ExternalLink size={13} /></span>
           </a>
           <p className="eocs-note">작업 시작 신고는 기존 EOCS에서 진행합니다.</p>
         </div>
-        <div className="service-shortcuts" aria-label="현장 서비스">
-          <button onClick={() => go('report')}>
-            <span><FilePenLine size={24} /></span>
-            <strong>시민 신고</strong>
-            <small>현장 내용 남기기</small>
-          </button>
-          <button onClick={() => go('worker')}>
-            <span><Box size={24} /></span>
-            <strong>3D 배관</strong>
-            <small>배관·단면 열람</small>
-          </button>
-          <button onClick={() => go('ar')}>
-            <span><ScanLine size={24} /></span>
-            <strong>바닥 AR</strong>
-            <small>내 공간에 배치</small>
-          </button>
-        </div>
         <section className="site-information" aria-labelledby="site-information-title">
-          <h2 id="site-information-title">굴착 현장 안전정보</h2>
-          <a href={EOCS_URL} target="_blank" rel="noreferrer">
-            <span className="information-icon"><ShieldCheck size={22} /></span>
-            <span><strong>현장 안전정보</strong><small>안전 안내·매설물 관리기관을 EOCS에서 확인</small></span>
-            <ExternalLink size={16} />
-          </a>
-          <a href={EOCS_URL} target="_blank" rel="noreferrer">
-            <span className="information-icon"><Map size={22} /></span>
-            <span><strong>인근 굴착지도</strong><small>EOCS에서 주변 굴착공사 확인</small></span>
-            <ExternalLink size={16} />
-          </a>
-          <button onClick={() => go('worker')}>
-            <span className="information-icon"><Layers3 size={22} /></span>
-            <span><strong>지하매설물 현황</strong><small>YS-001 구간의 배관 배치·단면 보기</small></span>
-            <ArrowRight size={17} />
-          </button>
+          <h2 id="site-information-title">굴착공사 안전정보 확인</h2>
+          <div className="eocs-safety-panel">
+            <div className="safety-guidance">
+              <ShieldCheck size={27} />
+              <h3>가스배관 등 지하매설물<br />작업 주의 안내</h3>
+              <p>굴착 전 현장 위치와 주변 지하매설물을<br />확인한 후 작업하세요.</p>
+            </div>
+            <div className="management-guidance">
+              <h3>주변 지하매설물 관리기관</h3>
+              <p>현장별 관리기관과 연락처는<br />EOCS 현장 안전정보에서 확인할 수 있습니다.</p>
+              <a href={EOCS_URL} target="_blank" rel="noreferrer">
+                관리기관 연락처 확인 <ExternalLink size={14} />
+              </a>
+            </div>
+            <div className="safety-navigation">
+              <a href={EOCS_URL} target="_blank" rel="noreferrer"><Map size={17} /> 인근 굴착공사 지도 <ExternalLink size={14} /></a>
+              <button onClick={() => go('worker')}><Layers3 size={17} /> 인근 지하매설물 현황 <ArrowRight size={15} /></button>
+            </div>
+          </div>
+          <div className="service-extension">
+            <h3>현장 신고 · 배관 확인</h3>
+            <div className="service-shortcuts" aria-label="현장 서비스">
+              <button onClick={() => go('report')}>
+                <span><FilePenLine size={24} /></span>
+                <strong>시민 신고</strong>
+                <small>현장 내용 남기기</small>
+              </button>
+              <button onClick={() => go('worker')}>
+                <span><Box size={24} /></span>
+                <strong>배관 3D</strong>
+                <small>배관·단면 열람</small>
+              </button>
+              <button onClick={() => go('ar')}>
+                <span><ScanLine size={24} /></span>
+                <strong>지하 투시 AR</strong>
+                <small>실제 화면에 겹쳐보기</small>
+              </button>
+            </div>
+          </div>
         </section>
       </section>
       <div className="entry-grid citizen-worker">

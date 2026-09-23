@@ -5,6 +5,8 @@ export interface XRMockControl {
   moveViewer(x: number, z: number): void
   /** Set the absolute viewer heading, in degrees, while keeping pitch -25deg. */
   rotateViewer(yawDegrees: number): void
+  /** Set the detected horizontal ground height in the local reference space. */
+  setGroundHeight(y: number): void
   setTracking(available: boolean): void
   setSurface(available: boolean): void
   select(): void
@@ -32,7 +34,7 @@ export async function installXRMock(page: Page): Promise<void> {
     const nativeRAF = window.requestAnimationFrame.bind(window)
     const nativeCancelRAF = window.cancelAnimationFrame.bind(window)
     const state = {
-      x: 0, z: 0, yaw: 0, tracking: true, surface: true,
+      x: 0, z: 0, yaw: 0, groundY: 0, tracking: true, surface: true,
       hitsCanceled: 0, sessionsEnded: 0, sessionsStarted: 0, anchorsDeleted: 0,
     }
 
@@ -135,7 +137,7 @@ export async function installXRMock(page: Page): Promise<void> {
             w: Math.cos(halfYaw) * Math.cos(halfPitch),
           },
         )
-        this.hit = new MockRigidTransform({ x: state.x, y: 0, z: state.z - 2 })
+        this.hit = new MockRigidTransform({ x: state.x, y: state.groundY, z: state.z - 2 })
       }
 
       getViewerPose(_space?: MockSpace) {
@@ -270,6 +272,7 @@ export async function installXRMock(page: Page): Promise<void> {
     window.__xrMock = {
       moveViewer(x, z) { state.x = x; state.z = z },
       rotateViewer(yawDegrees) { state.yaw = yawDegrees },
+      setGroundHeight(y) { state.groundY = y },
       setTracking(available) { state.tracking = available },
       setSurface(available) { state.surface = available },
       select() {

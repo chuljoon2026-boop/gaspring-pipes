@@ -2,7 +2,8 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRe
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
-import { createPipeModel, createQuickLookUrl, disposePipeModel } from '../ar/createPipeModel'
+import { createPipeModel, disposePipeModel } from '../ar/createPipeModel'
+import { FACILITIES } from '../network'
 
 export type ARPhase = 'idle' | 'searching' | 'surface' | 'placed' | 'lost'
 export interface FloorARHandle {
@@ -10,13 +11,51 @@ export interface FloorARHandle {
   end: () => Promise<void>
   place: () => void
   reset: () => void
-  quickLook: (scale: number) => Promise<string>
 }
-type Props = { scale: number; onPhase: (phase: ARPhase) => void; onReady: () => void }
+export type UndergroundSettings = {
+  facilityId: string; heading: number; depthOffset: number; gas: boolean; utilities: boolean; guides: boolean
+}
+type Props = { settings: UndergroundSettings; onPhase: (phase: ARPhase) => void; onReady: () => void }
 
-const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ scale, onPhase, onReady }, ref) {
-  const { gl, camera, invalidate } = useThree()
+function DepthLabel({ text, position, color = '#ffffff' }: { text: string; position: [number, number, number]; color?: string }) {
+  const texture = useMemo(() => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 768; canvas.height = 136
+    const context = canvas.getContext('2d')!
+    context.fillStyle = '#10233bea'
+    context.beginPath(); context.roundRect(0, 0, 768, 136, 24); context.fill()
+    context.fillStyle = color; context.font = 'bold 46px sans-serif'
+    context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(text, 384, 68)
+    const result = new THREE.CanvasTexture(canvas)
+    result.colorSpace = THREE.SRGBColorSpace
+    return result
+  }, [text, color])
+  useEffect(() => { texture.needsUpdate = true; return () => texture.dispose() }, [texture])
+  return <sprite position={position} scale={[1.6, 0.284, 1]} renderOrder={10}>
+    <spriteMaterial map={texture} depthTest={false} depthWrite={false} transparent toneMapped={false} />
+  </sprite>
+}
+
+function DepthGuides({ depth, label }: { depth: number; label: string }) {
+  return <group name="underground-depth-guides">
+    <mesh position={[0, 0.008, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <ringGeometry args={[0.2, 0.225, 48]} /><meshBasicMaterial color="#49e7ff" side={THREE.DoubleSide} />
+    </mesh>
+    {Array.from({ length: Math.ceil(depth / 0.15) }, (_, i) => <mesh key={i} position={[0, -Math.min(depth, i * 0.15 + 0.05), 0]}>
+      <cylinderGeometry args={[0.008, 0.008, 0.075, 6]} /><meshBasicMaterial color="#49e7ff" />
+    </mesh>)}
+    <mesh position={[0, -depth, 0]}><sphereGeometry args={[0.06, 12, 8]} /><meshBasicMaterial color="#ffffff" /></mesh>
+    <DepthLabel text="지면 0 m" position={[0.9, 0.1, 0]} />
+    <DepthLabel text={`${label} · 지하 ${depth.toFixed(2)} m`} position={[0.9, -depth, 0]} color="#9aefff" />
+  </group>
+}
+
+const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ settings, onPhase, onReady }, ref) {
+  const { gl, camera, scene, invalidate } = useThree()
   const model = useMemo(createPipeModel, [])
+  const selected = FACILITIES[settings.facilityId]
+  const depth = -selected.anchor[1] + settings.depthOffset
+  const groundClip = useMemo(() => new THREE.Plane(new THREE.Vector3(0, -1, 0), 0.012), [])
   const disposal = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const root = useRef<THREE.Group>(null)
   const reticle = useRef<THREE.Group>(null)
@@ -76,12 +115,13 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ sc
     latestHit.current = null
     if (reticle.current) reticle.current.visible = false
     if (root.current) { root.current.matrix.identity(); root.current.visible = true }
-    camera.position.set(3, 2.5, 3)
-    camera.lookAt(0, 0.12, 0)
+    groundClip.constant = 0.012
+    camera.position.set(4, 4, 7)
+    camera.lookAt(0, -1.3, 0)
     if (activeRef.current) setActive(false)
     phase('idle')
     invalidate()
-  }, [camera, invalidate, phase, requestPlacement, resetPlacement])
+  }, [camera, groundClip, invalidate, phase, requestPlacement, resetPlacement])
   const end = useCallback(async () => {
     const session = sessionRef.current
     if (session) {
@@ -120,13 +160,13 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ sc
     end,
     place: requestPlacement,
     reset: resetPlacement,
-    quickLook: (value) => createQuickLookUrl(model, value),
   }))
   useEffect(() => {
     clearTimeout(disposal.current)
     activeRef.current = true
-    camera.position.set(3, 2.5, 3)
-    camera.lookAt(0, 0.12, 0)
+    camera.position.set(4, 4, 7)
+    camera.lookAt(0, -1.3, 0)
+    gl.localClippingEnabled = true
     callbacks.current.onReady()
     return () => {
       activeRef.current = false
@@ -136,8 +176,27 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ sc
       // StrictMode immediately reconnects this effect. Dispose only after a real unmount.
       disposal.current = setTimeout(() => disposePipeModel(model), 0)
     }
-  }, [model, camera, cleanup])
-  useEffect(() => { invalidate() }, [scale, invalidate])
+  }, [model, camera, gl, cleanup])
+  useEffect(() => {
+    // Horizontal registration only: preserve the original negative burial coordinates.
+    const content = model.getObjectByName('PipeNetwork')!
+    content.position.set(-selected.anchor[0], -settings.depthOffset, -selected.anchor[2])
+    model.traverse((object) => {
+      if (!(object instanceof THREE.Mesh)) return
+      const layer = object.userData.layer
+      object.visible = layer === 'gas' ? settings.gas : layer === 'utilities' ? settings.utilities : false
+      const materials = Array.isArray(object.material) ? object.material : [object.material]
+      for (const material of materials) material.clippingPlanes = [groundClip]
+    })
+    model.updateMatrixWorld(true)
+    invalidate()
+  }, [model, selected, settings.depthOffset, settings.gas, settings.utilities, groundClip, invalidate])
+  useEffect(() => {
+    scene.background = active ? null : new THREE.Color('#14202f')
+    gl.setClearAlpha(active ? 0 : 1)
+    invalidate()
+  }, [active, scene, gl, invalidate])
+  useEffect(() => { invalidate() }, [settings.heading, settings.guides, invalidate])
   useFrame((_state, _delta, frame) => {
     const session = sessionRef.current
     const space = spaceRef.current
@@ -159,6 +218,7 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ sc
         matrix = scratch.matrix.fromArray(pose.transform.matrix).multiply(anchorOffset)
       }
       root.current.matrix.copy(matrix)
+      groundClip.constant = matrix.elements[13] + 0.012
       root.current.matrixWorldNeedsUpdate = true
       root.current.visible = true
       reticle.current.visible = false
@@ -193,6 +253,7 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ sc
     scratch.quaternion.setFromAxisAngle(scratch.up, yaw)
     fixedMatrix.compose(scratch.position, scratch.quaternion, scratch.one)
     root.current.matrix.copy(fixedMatrix)
+    groundClip.constant = fixedMatrix.elements[13] + 0.012
     root.current.matrixWorldNeedsUpdate = true
     root.current.visible = true
     reticle.current.visible = false
@@ -212,12 +273,14 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ sc
     }
   })
   return <>
-    {!active && <color attach="background" args={['#edf1f4']} />}
     <ambientLight intensity={1.6} />
     <hemisphereLight args={['#ffffff', '#7d8c9e', 2]} />
     <directionalLight position={[3, 7, 5]} intensity={2.5} />
     <group ref={root} name="grounded-pipe-model" matrixAutoUpdate={false}>
-      <group scale={scale}><primitive object={model} dispose={null} /></group>
+      <group name="underground-registration" rotation={[0, settings.heading * Math.PI / 180, 0]}>
+        <primitive object={model} dispose={null} />
+        {settings.guides && <DepthGuides depth={depth} label={selected.kind} />}
+      </group>
     </group>
     <group ref={reticle} name="floor-placement-reticle" matrixAutoUpdate={false} visible={false}>
       <mesh rotation={[-Math.PI / 2, 0, 0]}>
@@ -227,14 +290,14 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ sc
       <mesh rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.015, 16]} /><meshBasicMaterial color="#2d64ed" /></mesh>
     </group>
     {!active && <>
-      <gridHelper args={[8, 32, '#bdc8d4', '#dce3e9']} position={[0, -0.003, 0]} />
-      <OrbitControls target={[0, 0.12, 0]} minDistance={0.4} maxDistance={130} maxPolarAngle={Math.PI / 2.05} />
+      <gridHelper args={[24, 24, '#638298', '#314355']} position={[0, 0, 0]} />
+      <OrbitControls target={[0, -1.3, 0]} minDistance={2} maxDistance={80} maxPolarAngle={Math.PI / 2.05} />
     </>}
   </>
 })
 
 const FloorARScene = forwardRef<FloorARHandle, Props>(function FloorARScene(props, ref) {
-  return <Canvas camera={{ position: [3, 2.5, 3], near: 0.01, far: 300, fov: 50 }} dpr={[1, 1.5]}
+  return <Canvas camera={{ position: [4, 4, 7], near: 0.01, far: 150, fov: 50 }} dpr={[1, 1.5]}
     gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }} frameloop="demand">
     <TrackedWorld ref={ref} {...props} />
   </Canvas>

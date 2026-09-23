@@ -25,3 +25,35 @@
 .floor-ar:fullscreen,.floor-ar:xr-overlay{background:transparent}
 @media(max-width:480px){.floor-ar-header{padding:16px}.floor-ar-header>div{padding:12px 15px}.floor-ar-header h1{font-size:22px}.floor-ar-guide{top:140px;left:20px;font-size:11px;max-width:calc(100% - 40px)}.floor-ar-panel{padding:16px;bottom:max(14px,env(safe-area-inset-bottom))}.floor-ar-status{font-size:12px}.floor-ar-scale{font-size:12px}}
 @media(max-height:580px) and (orientation:landscape){.floor-ar-panel{left:auto;right:14px;bottom:14px;transform:none;width:340px}.floor-ar-guide{display:none}.floor-ar-header{right:370px}}
+
+.underground-ar{background:#14202f}
+.underground-ar .floor-ar-header>div{background:#10233bed;color:#fff;border-color:#49617b}
+.underground-ar .floor-ar-header span{color:#94e5f6}
+.underground-ar .floor-ar-header p{color:#bed0e0}
+.underground-ar .floor-ar-guide{color:#d9e5ed;font-size:12px}
+.underground-ar .floor-ar-guide span{background:#14202fc9;padding:5px 8px;border-radius:6px}
+.underground-ar .floor-ar-panel{padding:16px 18px;max-height:calc(100dvh - 170px);overflow:auto}
+.underground-ar .floor-ar-status{min-height:0;margin:11px 0;font-size:12px}
+.underground-ar .floor-ar-primary,.underground-ar .floor-ar-secondary{font-size:13px;padding:12px 8px;min-height:46px}
+.underground-reference{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;font-weight:700}
+.underground-reference>label{flex-shrink:0}
+.underground-reference select{font:inherit;min-width:0;max-width:78%;border:1px solid #cfddeb;border-radius:8px;background:#f3f7fc;color:#243f65;padding:9px 8px}
+.underground-reference select:disabled{opacity:1;background:#eef3f8;color:#455d7a}
+.underground-layers{display:flex;gap:7px;margin:12px 0 0}
+.underground-layers button{display:flex;align-items:center;justify-content:center;gap:6px;flex:1;font:inherit;font-size:10px;font-weight:650;border:1px solid #d7e1ed;background:#edf4fc;color:#304c70;border-radius:7px;padding:9px 5px;white-space:nowrap}
+.underground-layers button[aria-pressed=false]{opacity:.5;background:#fff;text-decoration:line-through}
+.underground-layers i,.depth-dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0}
+.gas-dot{background:#c5a64d}.utility-dot{background:#39a8d0}
+.underground-depth-badge{position:absolute;top:143px;left:24px;display:flex;align-items:center;gap:9px;padding:9px 13px;background:#10233bea;border:1px solid #39617b;color:#d8edfa;font-size:12px;border-radius:8px;pointer-events:none}
+.underground-depth-badge strong{color:#88edff}.depth-dot{background:#49e7ff}
+.underground-adjustments{margin-top:13px;border-top:1px solid #dce5ee;padding-top:10px}
+.underground-adjustments summary{display:flex;align-items:center;gap:7px;font-size:11px;color:#4b6380;cursor:pointer;list-style:none}
+.underground-adjustments label{display:flex;justify-content:space-between;font-size:11px;margin:15px 0 6px;color:#314d70}
+.underground-adjustments input{width:100%;accent-color:#087df7;min-height:24px}
+.depth-guide-toggle{display:flex;align-items:center;gap:7px;border:1px solid #d2dfed;background:#edf4fb;border-radius:7px;color:#35567b;padding:8px 10px;margin-top:10px;font:inherit;font-size:11px}
+.depth-guide-toggle[aria-pressed=false]{background:#fff;opacity:.55}
+.underground-ar .floor-ar-note{font-size:10px;margin-top:10px}
+.underground-ar.is-active{background:transparent}
+@media(max-width:480px){.underground-ar .floor-ar-panel{padding:14px}.underground-depth-badge{top:135px;left:16px}.underground-reference{font-size:11px}.underground-ar .floor-ar-guide{font-size:11px}}
+@media(max-width:340px){.underground-layers button{font-size:9px}.underground-ar .floor-ar-actions{grid-template-columns:minmax(0,1fr) 67px}.underground-ar .floor-ar-primary{font-size:12px}.underground-reference select{max-width:76%}}
+@media(max-height:580px) and (orientation:landscape){.underground-ar .floor-ar-panel{max-height:calc(100dvh - 28px);width:300px}.underground-ar .floor-ar-header{right:320px}.underground-depth-badge{top:145px;left:16px}}
