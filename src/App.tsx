@@ -6,19 +6,21 @@ import {
   Box,
   Camera,
   Check,
-  CircleAlert,
   ChevronDown,
   Copy,
   Download,
+  ExternalLink,
   FilePenLine,
   Layers3,
   LogOut,
   Maximize,
+  Map,
   MapPin,
   Printer,
   QrCode,
   RotateCcw,
   ScanLine,
+  ShieldCheck,
   X,
 } from 'lucide-react'
 import QRCode from 'qrcode'
@@ -38,6 +40,7 @@ import { MODEL_SOURCES } from './sources'
 import { PIPE_ROUTES } from './network'
 
 const PipeScene = lazy(() => import('./components/PipeScene'))
+const EOCS_URL = 'https://app.eocs.or.kr/'
 const pages: Page[] = ['home', 'worker', 'login', 'report', 'complete', 'ar', 'qr']
 const readPage = (): Page => {
   const p = location.hash.slice(1) as Page
@@ -91,7 +94,7 @@ export default function App() {
     }
   }, [])
   useEffect(() => {
-    document.title = '현장 공사 조회 · 여수산단 YS-001'
+    document.title = '굴착 현장 안전정보 · 여수산단 YS-001'
   }, [])
   useEffect(() => {
     if (!toast) return
@@ -130,7 +133,7 @@ export default function App() {
             3D 배관
           </button>
           <button className={page === 'report' ? 'is-active' : ''} onClick={() => go('report')}>
-            현장 제보
+            시민 신고
           </button>
           <button
             className={page === 'qr' ? 'is-active' : ''}
@@ -162,7 +165,7 @@ export default function App() {
                 onBack={() => go('home')}
                 onSuccess={(s) => {
                   setSession(s)
-                  go('worker')
+                  go(route === 'ar' ? 'ar' : 'worker')
                 }}
               />
             )}
@@ -205,17 +208,50 @@ function Home({ go }: { go: (p: Page) => void }) {
           </div>
           <span className="location-name"><MapPin size={17} /> 여수산단</span>
         </div>
-        <div className="construction-status" role="status">
-          <span className="status-icon"><CircleAlert size={27} /></span>
-          <h2>현장 확인이 필요한 구간입니다</h2>
-          <p>작업 위치와 현장 사진을 제보할 수 있습니다.</p>
+        <div className="excavation-entry">
+          <p className="excavation-instruction">현장에서 공사 정보를 확인하세요.</p>
+          <a className="excavation-circle" href={EOCS_URL} target="_blank" rel="noreferrer" aria-label="굴착현장 확인">
+            <MapPin size={30} />
+            <strong>굴착현장 확인</strong>
+            <span>EOCS 열기 <ExternalLink size={13} /></span>
+          </a>
+          <p className="eocs-note">작업 시작 신고는 기존 EOCS에서 진행합니다.</p>
         </div>
-        <button className="action primary citizen-report" onClick={() => go('report')}>
-          <FilePenLine size={20} />
-          현장 제보
-          <ArrowRight size={19} />
-        </button>
-        <p className="citizen-help">현장에서 확인한 작업 내용과 사진을 남길 수 있습니다.</p>
+        <div className="service-shortcuts" aria-label="현장 서비스">
+          <button onClick={() => go('report')}>
+            <span><FilePenLine size={24} /></span>
+            <strong>시민 신고</strong>
+            <small>현장 내용 남기기</small>
+          </button>
+          <button onClick={() => go('worker')}>
+            <span><Box size={24} /></span>
+            <strong>3D 배관</strong>
+            <small>배관·단면 열람</small>
+          </button>
+          <button onClick={() => go('ar')}>
+            <span><ScanLine size={24} /></span>
+            <strong>바닥 AR</strong>
+            <small>내 공간에 배치</small>
+          </button>
+        </div>
+        <section className="site-information" aria-labelledby="site-information-title">
+          <h2 id="site-information-title">굴착 현장 안전정보</h2>
+          <a href={EOCS_URL} target="_blank" rel="noreferrer">
+            <span className="information-icon"><ShieldCheck size={22} /></span>
+            <span><strong>현장 안전정보</strong><small>안전 안내·매설물 관리기관을 EOCS에서 확인</small></span>
+            <ExternalLink size={16} />
+          </a>
+          <a href={EOCS_URL} target="_blank" rel="noreferrer">
+            <span className="information-icon"><Map size={22} /></span>
+            <span><strong>인근 굴착지도</strong><small>EOCS에서 주변 굴착공사 확인</small></span>
+            <ExternalLink size={16} />
+          </a>
+          <button onClick={() => go('worker')}>
+            <span className="information-icon"><Layers3 size={22} /></span>
+            <span><strong>지하매설물 현황</strong><small>YS-001 구간의 배관 배치·단면 보기</small></span>
+            <ArrowRight size={17} />
+          </button>
+        </section>
       </section>
       <div className="entry-grid citizen-worker">
         <section className="entry-scene" aria-label="도로 하부 배관 개요">
@@ -231,12 +267,12 @@ function Home({ go }: { go: (p: Page) => void }) {
         </section>
         <aside className="entry-actions">
           <div>
-            <span className="eyebrow">작업자 · 배관 정보</span>
+            <span className="eyebrow">YS-001 · 지하매설물</span>
             <h2>도로 아래 배관 확인</h2>
             <p>3D 배치와 도로 단면, 교차부 정보를 확인합니다.</p>
             <button className="action secondary" onClick={() => go('worker')}>
               <Box size={18} />
-              작업자 접속
+              3D 배관 열기
               <ArrowRight size={18} />
             </button>
           </div>
@@ -572,75 +608,80 @@ function Login({ onBack, onSuccess }: { onBack: () => void; onSuccess: (s: Sessi
     }
   }
   return (
-    <section className="compact-card">
+    <section className="compact-card login-access">
       <button className="quiet-back" onClick={onBack}>
         <ArrowLeft size={15} />
         현장
       </button>
       <span className="eyebrow">YS-001</span>
-      <h1>작업자 접속</h1>
-      <form onSubmit={submit}>
-        <label>
-          접속 코드
-          <input
-            autoComplete="username"
-            value={permit}
-            onChange={(e) => setPermit(e.target.value)}
-            placeholder="YS-2026-001"
-            required
-            maxLength={50}
-          />
-        </label>
-        <label>
-          이름
-          <input
-            autoComplete="name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-            maxLength={30}
-          />
-        </label>
-        <label>
-          비밀번호
-          <input
-            type="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            maxLength={30}
-          />
-        </label>
-        {error && (
-          <p className="field-error" role="alert">
-            {error}
-          </p>
-        )}
-        <button className="action primary" type="submit">
-          배관 조회
-          <ArrowRight size={17} />
-        </button>
-        <button
-          className="prefill-button"
-          type="button"
-          onClick={() => {
-            const next = { name: '열람자', permit: LOCATION.permit, locationId: LOCATION.id }
-            try {
-              saveSession(next)
-              onSuccess(next)
-            } catch {
-              setError('접속 정보를 저장할 수 없습니다.')
-            }
-          }}
-        >
-          바로 열람
-        </button>
-        <details className="access-note">
-          <summary>접속 정보</summary>
-          <p>{LOCATION.permit} / 1234 · 기관 계정 연동 전 열람용 접속입니다.</p>
-        </details>
-      </form>
+      <h1>배관 · AR 열람</h1>
+      <p className="login-intro-copy">이 구간의 배관을 3D와 AR로 확인하세요.</p>
+      <button
+        className="action primary prefill-button"
+        type="button"
+        onClick={() => {
+          const next = { name: '열람자', permit: LOCATION.permit, locationId: LOCATION.id }
+          try {
+            saveSession(next)
+            onSuccess(next)
+          } catch {
+            setError('접속 정보를 저장할 수 없습니다.')
+          }
+        }}
+      >
+        <Box size={19} />
+        바로 열람
+        <ArrowRight size={18} />
+      </button>
+      {error && (
+        <p className="field-error login-error" role="alert">{error}</p>
+      )}
+      <a className="login-eocs-link" href={EOCS_URL} target="_blank" rel="noreferrer">
+        <span><strong>작업 시작 신고</strong><small>휴대전화 인증과 신고는 EOCS에서 진행합니다.</small></span>
+        <ExternalLink size={17} />
+      </a>
+      <details className="access-note login-credentials">
+        <summary>접속 코드로 열람 <ChevronDown size={15} /></summary>
+        <p>{LOCATION.permit} / 1234 · 기관 계정 연동 전 열람용 접속입니다.</p>
+        <form onSubmit={submit}>
+          <label>
+            접속 코드
+            <input
+              autoComplete="username"
+              value={permit}
+              onChange={(e) => setPermit(e.target.value)}
+              placeholder="YS-2026-001"
+              required
+              maxLength={50}
+            />
+          </label>
+          <label>
+            이름
+            <input
+              autoComplete="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              maxLength={30}
+            />
+          </label>
+          <label>
+            비밀번호
+            <input
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              maxLength={30}
+            />
+          </label>
+          <button className="action secondary" type="submit">
+            배관 조회
+            <ArrowRight size={17} />
+          </button>
+        </form>
+      </details>
     </section>
   )
 }
@@ -721,7 +762,7 @@ function ReportForm({
         현장
       </button>
       <span className="eyebrow">YS-001</span>
-      <h1>현장 제보</h1>
+      <h1>시민 신고</h1>
       <form onSubmit={submit}>
         <label>
           위치
@@ -785,7 +826,7 @@ function ReportForm({
           기관 전송 미연결 · 내용은 이 기기에 저장되며 사진 파일은 보관하지 않습니다.
         </p>
         <button className="action primary" disabled={busy} type="submit">
-          {busy ? '저장 중' : '제보 내용 저장'}
+          {busy ? '저장 중' : '신고 내용 저장'}
           <ArrowRight size={17} />
         </button>
       </form>
@@ -798,7 +839,7 @@ function Receipt({ report, go }: { report: Report | null; go: (p: Page) => void 
       <div className="receipt-check">
         <Check size={28} />
       </div>
-      <h1>{report ? '제보 내용 저장 완료' : '저장된 내용이 없습니다'}</h1>
+      <h1>{report ? '신고 내용 저장 완료' : '저장된 내용이 없습니다'}</h1>
       {report && (
         <>
           <p className="receipt-id">{report.id}</p>
@@ -881,7 +922,7 @@ function QRPanel({ notify }: { notify: (t: string) => void }) {
       <div className="qr-display">
         {qr ? <img src={qr} alt="현장 접속 QR" /> : <QrCode size={100} />}
       </div>
-      <p>현장 공사 조회 · 현장 제보 · 배관 정보</p>
+      <p>현장 공사 조회 · 시민 신고 · 배관 정보</p>
       <div className="qr-address">
         <code>{target}</code>
         <button onClick={copy} aria-label="주소 복사">

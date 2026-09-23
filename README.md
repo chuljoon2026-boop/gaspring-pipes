@@ -4,7 +4,7 @@
 보조 주소: https://claude.ai/code/artifact/9cf8f711-c223-4fab-9f77-13b4946837d9 (단일 파일 아티팩트, 공유 설정 필요)
 이전 주소: https://site-ys001.sapp05034.chatgpt.site/?location=YS-001 (codex Sites, 이전 버전)
 
-QR 현장 진입, 현장 제보 작성, 작업자 접속, 지하 관로 3D·AR 조회를 제공합니다. 첫 화면과 안내판은 `가스프링_part 7,8_ver1.pptx`의 시민 조회 흐름과 남색·파란색 구성을 참고했습니다.
+QR 현장 진입, 시민 신고 작성, 지하 관로 3D·AR 조회를 제공합니다. 첫 화면은 기존 EOCS 작업 시작 신고 화면의 흰색·남색 구성과 파란 원형 버튼을 참고했습니다. ‘굴착현장 확인’은 공식 EOCS를 열며 시민 신고·3D·AR은 확장 메뉴로 배치했습니다.
 
 ## 화면
 
@@ -21,7 +21,15 @@ QR 현장 진입, 현장 제보 작성, 작업자 접속, 지하 관로 3D·AR �
 
 `src/sources.ts`에 에어리퀴드의 여수 수소·일산화탄소 공급망, GS의 여수 MFC 지하배관 증설, K-water의 여수 생활·공업용수 공급 자료를 연결했습니다. 관종과 공급구조를 참고한 재구성이며 특정 도로의 실측 좌표·관경·심도를 나타내지 않습니다. 건물·도로 이름은 선명하게 표시합니다. 첫 화면의 ‘미신고 지역’은 화면에 설정된 상태이며 기관의 실시간 신고 정보와 연결되어 있지 않습니다.
 
-공사 등록 조회와 기관 신고 전송은 연결되지 않았습니다. 신고 내용은 현재 브라우저의 `localStorage`에 저장되고 사진은 선택·미리보기만 제공합니다. 작업자 접속은 프론트엔드의 열람용 확인이며 서버 인증을 대신하지 않습니다. AR은 카메라 영상 위에 모델을 표시하며 공간 정합은 연결되지 않았습니다. 각 연결 상태는 관련 화면에서 짧게 표시합니다.
+공사 등록 조회와 기관 신고 전송은 연결되지 않았습니다. 신고 내용은 현재 브라우저의 `localStorage`에 저장되고 사진은 선택·미리보기만 제공합니다. 열람용 접속 코드는 프론트엔드 확인이며 서버 인증을 대신하지 않습니다. 실제 작업 시작 신고·본인 인증은 공식 EOCS에서 진행합니다. 각 연결 상태는 관련 화면에서 표시합니다.
+
+## 바닥 AR
+
+WebXR 지원 휴대전화에서는 실제 카메라 위치·방향과 수평면 hit-test를 사용합니다. 바닥 표시를 확인한 뒤 배관을 배치하면 월드 좌표에 고정되며 휴대전화를 움직여도 배관 위치는 유지됩니다. anchors 지원 기기에서는 앵커로 추적하고, 미지원 기기는 같은 세션의 local reference space에 고정합니다. 추적이 끊기면 모형을 숨기고 위치 재인식을 안내합니다.
+
+iPhone Safari에서는 같은 배관 모형을 USDZ로 내보내 AR Quick Look의 수평면 배치를 사용합니다. 미지원 브라우저에는 3D 조회를 제공합니다. 기본 배율은 1:20(폭 약 3.2m)이며 1:10·실제 크기로 변경할 수 있습니다. 모형의 최하단을 인식한 바닥에 맞춥니다. 실제 지하 매설 위치를 측량·정합하는 기능은 아닙니다.
+
+자동 검증은 XR 기기 포즈·평면·앵커를 모의해 카메라 이동, 모형 고정, 추적 소실·복구와 세션 해제를 확인합니다. 실제 휴대전화의 센서 정확도·장시간 드리프트·Quick Look 표면 인식은 실기기 확인이 필요합니다.
 
 ## 실행
 
@@ -49,7 +57,7 @@ npm run qr -- --publish
 - 안내판: https://chuljoon2026-boop.github.io/gaspring-pipes/qr/YS-001-marker.png
 - 인쇄: https://chuljoon2026-boop.github.io/gaspring-pipes/qr/YS-001.html
 
-별도 주소용 QR은 `npm run qr -- --url https://your-site.example/`로 생성합니다. 기존 PPT에 삽입된 QR은 이전 Sites 주소를 가리키므로 새 PNG 또는 SVG로 교체해 사용합니다.
+별도 주소용 QR은 `npm run qr -- --url https://your-site.example/`로 생성합니다. `가스프링_part 7,8_ver1.pptx`와 완성본에는 현재 공개 주소의 QR을 삽입했습니다.
 
 ## 배포
 
@@ -79,7 +87,9 @@ node scripts/inline-artifact.mjs   # artifacts/yeosu-pipes.html
 - `src/network.ts`: 시설 정보와 관로 경로
 - `src/components/PipeScene.tsx`: 도로·주변 구조와 카메라·단면
 - `src/components/UtilityNetwork.tsx`: 관로·이음부·판·맨홀·이격 표시
-- `src/components/ARView.tsx`: 카메라와 배관 겹쳐 보기
+- `src/components/ARView.tsx`, `FloorARScene.tsx`: WebXR 바닥 배치·추적 및 Quick Look 진입
+- `src/ar/createPipeModel.ts`: 바닥 기준 배관 모형과 USDZ 내보내기
 - `tests/demo.spec.ts`: 모바일·PC의 핵심 기능과 3D 화면 검증
+- `tests/ar.spec.ts`, `tests/xr-mock.ts`: 공간 고정·추적 복구·세션 수명 검증
 
 React, TypeScript, Vite, Three.js, React Three Fiber를 사용합니다. Pretendard 글꼴은 저장소에 포함되어 있으며 SIL OFL 라이선스를 따릅니다.

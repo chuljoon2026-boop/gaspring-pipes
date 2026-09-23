@@ -871,7 +871,7 @@
 .citizen-title h1 {
   margin: 10px 0 12px;
   color: #142b50;
-  font-size: 32px;
+  font-size: 42px;
   font-weight: 750;
   letter-spacing: -1.3px;
 }
@@ -1002,6 +1002,193 @@
 }
 .receipt-note {
   margin: -10px 0 24px;
+}
+.excavation-entry {
+  text-align: center;
+  padding: 24px 0 28px;
+}
+.excavation-instruction {
+  color: #52637b;
+  font-size: 13px;
+  line-height: 1.7;
+  margin-bottom: 20px;
+}
+.excavation-circle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  width: 224px;
+  height: 224px;
+  margin: 0 auto;
+  border-radius: 50%;
+  color: #fff;
+  background: #087cf4;
+  box-shadow: 0 8px 20px #087cf430;
+  transition: background .15s, box-shadow .15s;
+}
+.excavation-circle:hover {
+  background: #066bda;
+  box-shadow: 0 9px 25px #087cf445;
+}
+.excavation-circle strong {
+  font-size: 23px;
+  font-weight: 650;
+  letter-spacing: -.8px;
+}
+.excavation-circle > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #e4f2ff;
+  font-size: 12px;
+}
+.eocs-note {
+  color: #77859a;
+  font-size: 11px;
+  line-height: 1.8;
+  margin-top: 19px;
+}
+.service-shortcuts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid #e8ecf3;
+}
+.service-shortcuts > button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  padding: 18px 7px 16px;
+  border: 1px solid #e0e8f4;
+  border-radius: 12px;
+  background: #f7faff;
+  color: #1a3b6c;
+}
+.service-shortcuts > button:hover {
+  background: #edf4ff;
+  border-color: #adc8ed;
+}
+.service-shortcuts > button > span {
+  color: #2270d3;
+  margin-bottom: 10px;
+}
+.service-shortcuts strong {
+  font-size: 15px;
+  letter-spacing: -.4px;
+}
+.service-shortcuts small {
+  margin-top: 6px;
+  color: #8390a4;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.site-information {
+  margin-top: 25px;
+}
+.site-information h2 {
+  font-size: 17px;
+  color: #203a61;
+  margin-bottom: 15px;
+  letter-spacing: -.5px;
+}
+.site-information > a,
+.site-information > button {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 17px;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 17px 15px;
+  border: 1px solid #e5eaf2;
+  border-radius: 10px;
+  margin-top: 9px;
+  color: #58769c;
+  text-align: left;
+  background: #fff;
+}
+.information-icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #eef5ff;
+  color: #427dc1;
+}
+.site-information strong,
+.site-information small {
+  display: block;
+}
+.site-information strong {
+  color: #223d63;
+  font-size: 14px;
+  font-weight: 650;
+}
+.site-information small {
+  margin-top: 5px;
+  color: #8590a0;
+  font-size: 10px;
+  line-height: 1.6;
+  word-break: keep-all;
+}
+.login-access h1 {
+  margin-bottom: 13px;
+}
+.login-intro-copy {
+  color: #77859a;
+  font-size: 12px;
+  line-height: 1.8;
+  margin-bottom: 24px;
+}
+.login-access .prefill-button {
+  min-height: 52px;
+  font-size: 16px;
+  padding: 14px 18px;
+}
+.login-eocs-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 0;
+  margin-top: 10px;
+  border-bottom: 1px solid #e5eaf2;
+  color: #2858a6;
+}
+.login-eocs-link strong,
+.login-eocs-link small {
+  display: block;
+}
+.login-eocs-link strong {
+  font-size: 13px;
+}
+.login-eocs-link small {
+  font-size: 10px;
+  line-height: 1.8;
+  margin-top: 6px;
+  color: #8491a4;
+  word-break: keep-all;
+}
+.login-credentials {
+  margin-top: 22px;
+  color: #7c8ba1;
+}
+.login-credentials summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  list-style: none;
+  font-size: 12px;
+}
+.login-credentials form {
+  margin-top: 20px;
+}
+.login-error {
+  margin-top: 14px;
 }
 @media (min-width: 1600px) {
   .field-main {
@@ -1253,7 +1440,7 @@
     margin-bottom: 22px;
   }
   .citizen-title h1 {
-    font-size: 29px;
+    font-size: 38px;
     margin-top: 8px;
   }
   .citizen-title .eyebrow {
@@ -1277,6 +1464,49 @@
   }
   .citizen-help {
     font-size: 10px;
+  }
+  .excavation-entry {
+    padding-top: 19px;
+    padding-bottom: 24px;
+  }
+  .excavation-instruction {
+    font-size: 12px;
+    margin-bottom: 17px;
+  }
+  .excavation-circle {
+    width: 204px;
+    height: 204px;
+    gap: 11px;
+  }
+  .excavation-circle strong {
+    font-size: 21px;
+  }
+  .eocs-note {
+    font-size: 10px;
+    margin-top: 17px;
+  }
+  .service-shortcuts {
+    gap: 8px;
+    padding-bottom: 24px;
+  }
+  .service-shortcuts > button {
+    padding: 15px 5px 13px;
+  }
+  .service-shortcuts strong {
+    font-size: 14px;
+  }
+  .service-shortcuts small {
+    font-size: 9px;
+  }
+  .site-information > a,
+  .site-information > button {
+    grid-template-columns: 36px minmax(0, 1fr) 15px;
+    gap: 10px;
+    padding: 15px 12px;
+  }
+  .information-icon {
+    width: 36px;
+    height: 36px;
   }
   .citizen-worker {
     padding-top: 22px;

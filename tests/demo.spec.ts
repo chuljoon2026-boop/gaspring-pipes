@@ -36,16 +36,32 @@ function collectErrors(page: Page) {
 test('QR 첫 화면은 핵심 기능을 보여주고 잘못된 QR와 무인증 배관 경로를 처리한다', async ({ page }, testInfo) => {
   await page.goto(markerUrl)
   await expect(page.getByRole('heading', { name: '미신고 지역', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: '작업자 접속', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: '현장 제보', exact: true }).and(page.locator('.citizen-report'))).toBeVisible()
-  await expect(page.getByRole('status')).toContainText('현장 확인이 필요한 구간입니다')
+  const eocs = page.getByRole('link', { name: '굴착현장 확인', exact: true })
+  await expect(eocs).toBeVisible()
+  await expect(eocs).toHaveAttribute('href', 'https://app.eocs.or.kr/')
+  await expect(eocs).toHaveAttribute('target', '_blank')
+  await expect(page.getByText('작업 시작 신고는 기존 EOCS에서 진행합니다.', { exact: true })).toBeVisible()
+  const services = page.locator('.service-shortcuts')
+  await expect(services.getByRole('button')).toHaveCount(3)
+  for (const name of [/^시민 신고/, /^3D 배관/, /^바닥 AR/]) {
+    await expect(services.getByRole('button', { name })).toBeVisible()
+  }
+  await expect(page.locator('.site-information').getByRole('link')).toHaveCount(2)
+  await expect(page.locator('.site-information').getByRole('button', { name: /지하매설물 현황/ })).toBeVisible()
   await expect(page.locator('canvas')).toBeVisible()
   await checkLayout(page)
   await capture(page, testInfo, 'home')
-  for (const route of ['worker', 'ar']) {
-    await page.goto(`${markerUrl}#${route}`)
-    await expect(page.getByRole('heading', { name: '작업자 접속', exact: true })).toBeVisible()
-    await expect(page.getByLabel('접속 코드', { exact: true })).toBeVisible()
+  await services.getByRole('button', { name: /^시민 신고/ }).click()
+  await expect(page).toHaveURL(/location=YS-001#report$/)
+  await expect(page.getByRole('heading', { name: '시민 신고', exact: true })).toBeVisible()
+  for (const [name, route] of [[/^3D 배관/, 'worker'], [/^바닥 AR/, 'ar']] as const) {
+    await page.goto(markerUrl)
+    await services.getByRole('button', { name }).click()
+    await expect(page).toHaveURL(new RegExp(`location=YS-001#${route}$`))
+    await expect(page.getByRole('heading', { name: '배관 · AR 열람', exact: true })).toBeVisible()
+    await expect(page.getByRole('button', { name: '바로 열람', exact: true })).toBeVisible()
+    await expect(page.locator('.login-credentials')).not.toHaveAttribute('open', '')
+    await expect(page.getByLabel('접속 코드', { exact: true })).not.toBeVisible()
     await expect(page.locator('canvas')).toHaveCount(0)
   }
   await page.goto('/?location=UNKNOWN-999#worker')
@@ -59,8 +75,9 @@ test('QR 첫 화면은 핵심 기능을 보여주고 잘못된 QR와 무인증 �
 
 test('새 브라우저에서 정보를 입력하지 않고 바로 열람하여 배관을 확인한다', async ({ page }) => {
   await page.goto(markerUrl)
-  await page.getByRole('button', { name: '작업자 접속', exact: true }).click()
-  await expect(page.getByRole('heading', { name: '작업자 접속', exact: true })).toBeVisible()
+  await page.locator('.service-shortcuts').getByRole('button', { name: /^3D 배관/ }).click()
+  await expect(page.getByRole('heading', { name: '배관 · AR 열람', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: /작업 시작 신고/ })).toHaveAttribute('href', 'https://app.eocs.or.kr/')
   for (const label of ['접속 코드', '이름', '비밀번호']) {
     await expect(page.getByLabel(label, { exact: true })).toHaveValue('')
   }
@@ -72,11 +89,11 @@ test('새 브라우저에서 정보를 입력하지 않고 바로 열람하여 �
   await checkLayout(page)
 })
 
-test('사진 형식·용량을 검사하고 제보 내용을 저장하여 새로고침 후에도 확인한다', async ({ page }, testInfo) => {
+test('사진 형식·용량을 검사하고 시민 신고 내용을 저장하여 새로고침 후에도 확인한다', async ({ page }, testInfo) => {
   await page.goto(`${markerUrl}#report`)
   await expect(page.getByLabel('위치', { exact: true })).toHaveValue('YS-001 · 여수산단')
   await expect(page.getByLabel('위치', { exact: true })).toHaveAttribute('readonly', '')
-  await page.getByRole('button', { name: '제보 내용 저장', exact: true }).click()
+  await page.getByRole('button', { name: '신고 내용 저장', exact: true }).click()
   expect(await page.getByLabel('작업 내용', { exact: true }).evaluate((el: HTMLTextAreaElement) => el.validity.valueMissing)).toBe(true)
   const upload = page.locator('input[type="file"]')
   await upload.setInputFiles({ name: 'invalid.txt', mimeType: 'text/plain', buffer: Buffer.from('not an image') })
@@ -93,9 +110,10 @@ test('사진 형식·용량을 검사하고 제보 내용을 저장하여 새로
   await page.getByLabel('작업 내용', { exact: true }).fill(reason)
   await expect(page.getByText(/기관 전송 미연결/)).toBeVisible()
   await checkLayout(page)
-  await page.getByRole('button', { name: '제보 내용 저장', exact: true }).click()
+  await page.getByRole('button', { name: '신고 내용 저장', exact: true }).click()
   await expect(page).toHaveURL(/location=YS-001#complete$/)
-  await expect(page.getByRole('heading', { name: '제보 내용 저장 완료', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '신고 내용 저장 완료', exact: true })).toBeVisible()
+  await expect(page.getByText('이 기기에 저장되었습니다. 기관으로 전송되지는 않았습니다.', { exact: true })).toBeVisible()
   await expect(page.getByText(reason, { exact: true })).toBeVisible()
   await page.reload({ waitUntil: 'domcontentloaded' })
   await expect(page.getByText(reason, { exact: true })).toBeVisible()
@@ -107,6 +125,7 @@ test('전체·평면·도로 단면·교차부가 다르게 렌더링되고 회�
   test.setTimeout(120_000)
   const errors = collectErrors(page)
   await page.goto(`${markerUrl}#login`)
+  await page.getByText('접속 코드로 열람', { exact: true }).click()
   await page.getByLabel('접속 코드', { exact: true }).fill('YS-2026-001')
   await page.getByLabel('이름', { exact: true }).fill('확인자')
   await page.getByLabel('비밀번호', { exact: true }).fill('0000')
@@ -163,7 +182,7 @@ test('전체·평면·도로 단면·교차부가 다르게 렌더링되고 회�
   await page.getByRole('button', { name: '시점 초기화', exact: true }).click()
   await page.getByRole('button', { name: '로그아웃', exact: true }).click()
   await page.goto(`${markerUrl}#worker`)
-  await expect(page.getByRole('heading', { name: '작업자 접속', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '배관 · AR 열람', exact: true })).toBeVisible()
   expect(errors).toEqual([])
 })
 
@@ -219,49 +238,6 @@ test('관로 심도·규격과 시설 필터·보호판 분리·레이어 표시
   await expect(page.getByRole('slider', { name: '노면 표시', exact: true })).toHaveValue('0.85')
   await checkLayout(page)
   expect(errors).toEqual([])
-})
-
-test('AR은 카메라 거부 후에도 동작하고 카메라 끄기와 AR 종료 시 스트림을 해제한다', async ({ page }, testInfo) => {
-  test.setTimeout(100_000)
-  await page.addInitScript(() => Object.defineProperty(navigator.mediaDevices, 'getUserMedia', { configurable: true, value: async () => { throw new DOMException('Camera permission denied', 'NotAllowedError') } }))
-  await authenticate(page)
-  await page.getByRole('button', { name: 'AR', exact: true }).click()
-  await expect(page).toHaveURL(/location=YS-001#ar$/)
-  await expect(page.getByRole('heading', { name: '배관 AR', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: '현장 카메라 켜기', exact: true }).click()
-  await expect(page.getByRole('status')).toContainText('카메라에 접근할 수 없습니다')
-  await expect(page.locator('canvas')).toBeVisible()
-  await page.getByRole('button', { name: 'AR 구조물 표시', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'AR 구조물 표시', exact: true })).toHaveAttribute('aria-pressed', 'false')
-  await checkLayout(page)
-  await capture(page, testInfo, 'ar')
-  // Exercise real browser video playback and MediaStream track lifecycle.
-  await page.evaluate(() => Object.defineProperty(navigator.mediaDevices, 'getUserMedia', { configurable: true, value: async () => {
-    const canvas = document.createElement('canvas')
-    canvas.width = 640; canvas.height = 360
-    const context = canvas.getContext('2d')!
-    context.fillStyle = '#abc6b6'; context.fillRect(0, 0, 640, 360)
-    const stream = canvas.captureStream(10)
-    requestAnimationFrame(() => { context.fillStyle = '#52786b'; context.fillRect(0, 180, 640, 180) })
-    return stream
-  } }))
-  const video = page.locator('video')
-  await page.getByRole('button', { name: '현장 카메라 켜기', exact: true }).click()
-  await expect(page.getByRole('button', { name: '카메라 끄기', exact: true })).toBeVisible()
-  await expect.poll(() => video.evaluate((el: HTMLVideoElement) => el.videoWidth)).toBeGreaterThan(0)
-  const first = await video.evaluateHandle((el: HTMLVideoElement) => (el.srcObject as MediaStream).getVideoTracks()[0])
-  expect(await first.evaluate(track => track.readyState)).toBe('live')
-  await page.getByRole('button', { name: '카메라 끄기', exact: true }).click()
-  await expect.poll(() => first.evaluate(track => track.readyState)).toBe('ended')
-  expect(await video.evaluate((el: HTMLVideoElement) => el.srcObject === null)).toBe(true)
-  await first.dispose()
-  await page.getByRole('button', { name: '현장 카메라 켜기', exact: true }).click()
-  await expect(page.getByRole('button', { name: '카메라 끄기', exact: true })).toBeVisible()
-  const second = await video.evaluateHandle((el: HTMLVideoElement) => (el.srcObject as MediaStream).getVideoTracks()[0])
-  await page.getByRole('button', { name: 'AR 닫기', exact: true }).click()
-  await expect(page).toHaveURL(/location=YS-001#worker$/)
-  await expect.poll(() => second.evaluate(track => track.readyState)).toBe('ended')
-  await second.dispose()
 })
 
 test('QR은 쿼리와 현장 코드를 보존하고 자격증명 주소를 거부하며 PNG로 저장된다', async ({ page }, testInfo) => {
