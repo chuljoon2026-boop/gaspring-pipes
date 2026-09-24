@@ -1,9 +1,8 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, Move3D, RotateCcw, ScanLine, X } from 'lucide-react'
 import type { ARPhase, FloorARHandle, UndergroundSettings } from './FloorARScene'
 import type { CameraARHandle } from './CameraARScene'
 import './ARView.css'
-import { GroundMask, type MaskMode } from '../ar/GroundMask'
 import { FACILITIES, PIPE_ROUTES } from '../network'
 
 const CameraARScene = lazy(() => import('./CameraARScene'))
@@ -21,15 +20,7 @@ const initialSettings: UndergroundSettings = {
 }
 
 export default function ARView({ onClose }: { onClose: () => void }) {
-  const groundMask = useMemo(() => new GroundMask(), [])
-  const [maskMode, setMaskMode] = useState<MaskMode>('pending')
   const autoCamera = useRef(false)
-  useEffect(() => {
-    groundMask.onChange = setMaskMode
-    const resize = () => groundMask.clear()
-    window.addEventListener('resize', resize)
-    return () => { window.removeEventListener('resize', resize); groundMask.onChange = undefined; groundMask.dispose() }
-  }, [groundMask])
   const overlay = useRef<HTMLDivElement>(null)
   const scene = useRef<FloorARHandle>(null)
   const cameraScene = useRef<CameraARHandle>(null)
@@ -41,6 +32,7 @@ export default function ARView({ onClose }: { onClose: () => void }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [settings, setSettings] = useState(initialSettings)
+  const selectPipe = useCallback((id: string) => setSettings(current => ({ ...current, facilityId: id, [FACILITIES[id].layer]: true })), [])
   const selected = FACILITIES[settings.facilityId]
   const pipeIds = [...new Set(PIPE_ROUTES.map(route => route.id))]
   const active = phase !== 'idle'
@@ -91,16 +83,10 @@ export default function ARView({ onClose }: { onClose: () => void }) {
       if (!scene.current || !navigator.xr) return
       const next = await navigator.xr.requestSession('immersive-ar', {
         requiredFeatures: ['hit-test', 'dom-overlay'],
-        optionalFeatures: ['anchors', 'depth-sensing'],
-        depthSensing: { usagePreference: ['cpu-optimized'], dataFormatPreference: ['float32', 'luminance-alpha'] },
+        optionalFeatures: ['anchors'],
         domOverlay: { root: overlay.current },
       })
       if (!mounted.current || !scene.current) { await next.end(); return }
-      if (next.depthUsage !== 'cpu-optimized') {
-        await next.end()
-        setReady(false); autoCamera.current = true; setCapability('camera')
-        return
-      }
       session.current = next
       await scene.current.start(next)
     } catch (caught) {
@@ -122,15 +108,15 @@ export default function ARView({ onClose }: { onClose: () => void }) {
     try { await (capability === 'camera' ? cameraScene.current?.end() : scene.current?.end()) } catch { setError('브라우저의 AR 종료 버튼으로 닫아주세요.') }
   }
 
-  return <div ref={overlay} className={'floor-ar underground-ar ' + (active ? 'is-active ' : '') + (capability === 'camera' ? 'camera-mode' : '')} data-ar-phase={phase} data-ar-mode="underground" data-ar-backend={capability} data-ground-mask={maskMode}>
+  return <div ref={overlay} className={'floor-ar underground-ar ' + (active ? 'is-active ' : '') + (capability === 'camera' ? 'camera-mode' : '')} data-ar-phase={phase} data-ar-mode="underground" data-ar-backend={capability} data-selected-pipe={settings.facilityId}>
     <div className="floor-ar-stage" aria-label="지면 아래 배관 미리보기">
       <Suspense fallback={<div className="floor-ar-loading">배관을 준비하고 있습니다</div>}>
-        {capability === 'camera' ? <CameraARScene ref={cameraScene} groundMask={groundMask} settings={settings} onPhase={onPhase} onReady={onReady} onError={setError} />
-          : capability !== 'checking' && <FloorARScene ref={scene} groundMask={groundMask} settings={settings} onPhase={onPhase} onReady={onReady} />}
+        {capability === 'camera' ? <CameraARScene ref={cameraScene} onSelect={selectPipe} settings={settings} onPhase={onPhase} onReady={onReady} onError={setError} />
+          : capability !== 'checking' && <FloorARScene ref={scene} onSelect={selectPipe} settings={settings} onPhase={onPhase} onReady={onReady} />}
       </Suspense>
     </div>
     <header className="floor-ar-header">
-      <div><span><ScanLine size={15} /> GIS 배관 정보</span><h1>지하 투시 AR</h1><p>{active && maskMode === 'depth' ? '지면 인식 / 사물 가림' : '지면 자동 인식 / 지하 배관'}</p></div>
+      <div><span><ScanLine size={15} /> GIS 배관 정보</span><h1>매설배관 AR 조회</h1><p>매설 위치 / 심도 조회</p></div>
       <button className="floor-ar-close" onClick={close} aria-label="AR 닫기"><X size={22} /></button>
     </header>
     {!active && <div className="floor-ar-guide"><Move3D size={22} /><span>현재 위치를 기준으로 배관을 표시합니다.<br />지면을 비춰 배관의 위치와 심도를 확인하세요.</span></div>}
@@ -146,7 +132,7 @@ export default function ARView({ onClose }: { onClose: () => void }) {
     <section className="floor-ar-panel">
       <p className="floor-ar-status" role="status">{error || (capability === 'unsupported'
         ? '카메라를 사용할 수 없습니다. 3D 배관 보기를 이용하세요.'
-        : registered && (maskMode === 'pending' || maskMode === 'searching') ? '지면을 인식하고 있습니다.' : capability === 'camera' && phase === 'searching' ? '휴대전화를 아래로 기울여 지면을 비추세요.' : phaseText[phase])}</p>
+        : capability === 'camera' && phase === 'searching' ? '휴대전화를 아래로 기울여 지면을 비추세요.' : phaseText[phase])}</p>
       {active && <>
         <div className="underground-layers" aria-label="배관 표시">
           <button aria-pressed={settings.gas} onClick={() => change('gas', !settings.gas)}><i className="gas-dot" />가스 / 제품관</button>

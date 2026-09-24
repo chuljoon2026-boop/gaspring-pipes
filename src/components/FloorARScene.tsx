@@ -6,7 +6,8 @@ import { createPipeModel, disposePipeModel } from '../ar/createPipeModel'
 import DepthReference from './DepthReference'
 import { FACILITIES } from '../network'
 import { DEMO_GIS } from '../ar/demoGIS'
-import type { GroundMask } from '../ar/GroundMask'
+import PipePicker from './PipePicker'
+import { canvasEvents } from '../ar/canvasEvents'
 
 export type ARPhase = 'idle' | 'searching' | 'surface' | 'placed' | 'lost'
 export interface FloorARHandle {
@@ -17,9 +18,9 @@ export interface FloorARHandle {
 export type UndergroundSettings = {
   facilityId: string; heading: number; depthOffset: number; gas: boolean; utilities: boolean; guides: boolean; opacity: number
 }
-type Props = { groundMask: GroundMask; settings: UndergroundSettings; onPhase: (phase: ARPhase) => void; onReady: () => void }
+type Props = { onSelect: (id: string) => void; settings: UndergroundSettings; onPhase: (phase: ARPhase) => void; onReady: () => void }
 
-const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ settings, onPhase, onReady, groundMask }, ref) {
+const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ settings, onPhase, onReady, onSelect }, ref) {
   const { gl, camera, scene, invalidate } = useThree()
   const model = useMemo(createPipeModel, [])
   const groundClip = useMemo(() => new THREE.Plane(new THREE.Vector3(0, -1, 0), 0.012), [])
@@ -53,17 +54,14 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
   }, [])
   const resetPlacement = useCallback(() => {
     placementId.current += 1
-    groundMask.reset()
     placed.current = false
     stableSince.current = null
     anchorRef.current?.delete()
     anchorRef.current = null
     if (root.current) root.current.visible = false
     phase('searching')
-  }, [phase, groundMask])
+  }, [phase])
   const cleanup = useCallback(() => {
-    groundMask.enabled.value = 0
-    groundMask.reset()
     generation.current += 1
     placementId.current += 1
     sourceRef.current?.cancel()
@@ -85,7 +83,7 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
     if (activeRef.current) setActive(false)
     phase('idle')
     invalidate()
-  }, [camera, groundClip, invalidate, phase, resetPlacement, groundMask])
+  }, [camera, groundClip, invalidate, phase, resetPlacement])
   const end = useCallback(async () => {
     const session = sessionRef.current
     if (session) {
@@ -98,7 +96,6 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
       const token = ++generation.current
       sessionRef.current = session
       resetPlacement()
-      groundMask.enabled.value = 1
       setActive(true)
       session.addEventListener('end', cleanup)
       try {
@@ -126,7 +123,6 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
   }))
   useEffect(() => {
     clearTimeout(disposal.current)
-    groundMask.attach(model)
     activeRef.current = true
     camera.position.set(4, 4, 7)
     camera.lookAt(0, -1.3, 0)
@@ -140,7 +136,7 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
       // StrictMode immediately reconnects this effect. Dispose only after a real unmount.
       disposal.current = setTimeout(() => disposePipeModel(model), 0)
     }
-  }, [model, camera, gl, cleanup, groundMask])
+  }, [model, camera, gl, cleanup])
   useEffect(() => {
     // Horizontal registration only: preserve the original negative burial coordinates.
     const content = model.getObjectByName('PipeNetwork')!
@@ -152,7 +148,7 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
       const materials = Array.isArray(object.material) ? object.material : [object.material]
       for (const material of materials) {
         material.clippingPlanes = [groundClip]
-        material.opacity = settings.opacity
+        material.opacity = object.userData.facilityId === settings.facilityId ? settings.opacity : settings.opacity * 0.22
         material.transparent = true
         material.depthWrite = false
       }
@@ -175,7 +171,6 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
       root.current.visible = false
       reticle.current.visible = false
         stableSince.current = null
-      groundMask.clear()
       phase('lost')
       return
     }
@@ -183,7 +178,7 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
       let matrix = fixedMatrix
       if (anchorRef.current) {
         const pose = frame.getPose(anchorRef.current.anchorSpace, space)
-        if (!pose) { root.current.visible = false; groundMask.clear(); phase('lost'); return }
+        if (!pose) { root.current.visible = false; phase('lost'); return }
         matrix = scratch.matrix.fromArray(pose.transform.matrix).multiply(anchorOffset)
       }
       root.current.matrix.copy(matrix)
@@ -191,13 +186,6 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
       root.current.matrixWorldNeedsUpdate = true
       root.current.visible = true
       reticle.current.visible = false
-      // Restrict automatic masks to a single handheld view. A stereo view
-      // requires separate per-eye textures and is deliberately not guessed.
-      if (session.depthUsage === 'cpu-optimized' && viewer.views.length === 1) {
-        let info: XRCPUDepthInformation | null | undefined
-        try { info = frame.getDepthInformation(viewer.views[0]) } catch { info = null }
-        groundMask.updateDepth(info, viewer.views[0], matrix.elements[13])
-      } else groundMask.clear()
       phase('placed')
       return
     }
@@ -259,8 +247,8 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
     <directionalLight position={[3, 7, 5]} intensity={2.5} />
     <group ref={root} name="grounded-pipe-model" matrixAutoUpdate={false}>
       <group name="underground-registration" rotation={[0, settings.heading * Math.PI / 180, 0]}>
-        <primitive object={model} dispose={null} />
-        {settings.guides && (FACILITIES[settings.facilityId].layer === 'gas' ? settings.gas : settings.utilities) && <DepthReference key={settings.facilityId} facilityId={settings.facilityId} groundMask={groundMask} />}
+        <primitive object={model} dispose={null} /><PipePicker model={model} onSelect={onSelect} />
+        {settings.guides && (FACILITIES[settings.facilityId].layer === 'gas' ? settings.gas : settings.utilities) && <DepthReference key={settings.facilityId} facilityId={settings.facilityId} />}
       </group>
     </group>
     <group ref={reticle} name="floor-placement-reticle" matrixAutoUpdate={false} visible={false}>
@@ -278,7 +266,7 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
 })
 
 const FloorARScene = forwardRef<FloorARHandle, Props>(function FloorARScene(props, ref) {
-  return <Canvas camera={{ position: [4, 4, 7], near: 0.01, far: 150, fov: 50 }} dpr={[1, 1.5]}
+  return <Canvas events={canvasEvents} camera={{ position: [4, 4, 7], near: 0.01, far: 150, fov: 50 }} dpr={[1, 1.5]}
     gl={{ alpha: true, antialias: true, powerPreference: 'high-performance' }} frameloop="demand">
     <TrackedWorld ref={ref} {...props} />
   </Canvas>

@@ -3,17 +3,15 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { FACILITIES, PIPE_ROUTES } from '../network'
 import { DEMO_GIS } from '../ar/demoGIS'
-import type { GroundMask } from '../ar/GroundMask'
 import { disposePipeModel } from '../ar/createPipeModel'
 
 /** A diagram anchored to the selected pipe: surface datum / vertical metric
  * ruler / centre point. It does not pretend to be a measured excavation. */
-export default function DepthReference({ facilityId, groundMask }: { facilityId: string; groundMask: GroundMask }) {
+export default function DepthReference({ facilityId }: { facilityId: string }) {
   const selected = FACILITIES[facilityId]
   const cleanupTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const reference = useMemo(() => {
     const group = new THREE.Group()
-    const continuity = new THREE.Group(); continuity.name = 'occluded-pipe-centerline'
     group.name = 'pipe-depth-reference'
     group.position.set(selected.anchor[0] + DEMO_GIS.drawingOffset[0], 0, selected.anchor[2] + DEMO_GIS.drawingOffset[2])
     const depth = -selected.anchor[1]
@@ -45,41 +43,18 @@ export default function DepthReference({ facilityId, groundMask }: { facilityId:
     }
     label('지면 0 m', -0.22)
     label(`중심 ${depth.toFixed(2)} m`, -depth)
-    for (const route of PIPE_ROUTES.filter(route => route.id === facilityId)) {
-      const points = route.points.map(point => new THREE.Vector3(point[0] + DEMO_GIS.drawingOffset[0], point[1], point[2] + DEMO_GIS.drawingOffset[2]))
-      const geometry = new THREE.BufferGeometry().setFromPoints(points)
-      const material = new THREE.LineDashedMaterial({ color: '#cde0e7', dashSize: 0.16, gapSize: 0.14, transparent: true, opacity: 0.24, depthWrite: false, depthTest: false })
-      material.onBeforeCompile = shader => {
-        shader.uniforms.groundMask = { value: groundMask.texture }
-        shader.vertexShader = 'varying vec4 guideClip;\n' + shader.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\nguideClip = gl_Position;')
-        shader.fragmentShader = 'uniform sampler2D groundMask;\nvarying vec4 guideClip;\n' + shader.fragmentShader.replace('#include <clipping_planes_fragment>', `#include <clipping_planes_fragment>
-          vec2 guideUV = guideClip.xy / guideClip.w * 0.5 + 0.5;
-          guideUV.y = 1.0 - guideUV.y;
-          diffuseColor.a *= 1.0 - smoothstep(0.25, 0.75, texture2D(groundMask, guideUV).r);
-          if (diffuseColor.a < 0.003) discard;`)
-      }
-      material.customProgramCacheKey = () => 'occluded-gis-centerline-v1'
-      const line = new THREE.Line(geometry, material); line.computeLineDistances(); line.renderOrder = 3
-      continuity.add(line)
-    }
     const route = PIPE_ROUTES.find(route => route.id === facilityId && route.points.length === 2 && route.points[0][2] === route.points[1][2] && route.points[0][1] === route.points[1][1])
-    return { group, continuity, labels, textures, route, origin: new THREE.Vector3(), ahead: new THREE.Vector3(), inverseParent: new THREE.Quaternion(), cameraRotation: new THREE.Quaternion() }
-  }, [selected, facilityId, groundMask])
+    return { group, labels, textures, route, origin: new THREE.Vector3(), ahead: new THREE.Vector3(), inverseParent: new THREE.Quaternion(), cameraRotation: new THREE.Quaternion() }
+  }, [selected, facilityId])
   useEffect(() => {
     clearTimeout(cleanupTimer.current)
-    groundMask.attach(reference.group)
     return () => {
       cleanupTimer.current = setTimeout(() => {
         reference.textures.forEach(texture => texture.dispose())
         disposePipeModel(reference.group)
-        reference.continuity.children.forEach(object => {
-          const line = object as THREE.Line<THREE.BufferGeometry, THREE.LineDashedMaterial>
-          line.geometry.dispose(); line.material.dispose()
-        })
-        reference.continuity.clear()
       }, 0)
     }
-  }, [reference, groundMask])
+  }, [reference])
   useFrame(({ camera }) => {
     // Place the ruler on the visible part of a straight main, not an arbitrary
     // GIS record anchor that may be outside the camera view. The pipe stays fixed.
@@ -98,5 +73,5 @@ export default function DepthReference({ facilityId, groundMask }: { facilityId:
     camera.getWorldQuaternion(reference.cameraRotation)
     for (const label of reference.labels) label.quaternion.copy(reference.inverseParent).multiply(reference.cameraRotation)
   })
-  return <><primitive object={reference.group} dispose={null} /><primitive object={reference.continuity} dispose={null} /></>
+  return <><primitive object={reference.group} dispose={null} /></>
 }

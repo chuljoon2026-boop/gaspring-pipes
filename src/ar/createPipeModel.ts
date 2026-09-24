@@ -33,6 +33,7 @@ export function createPipeModel(): THREE.Group {
   content.name = 'PipeNetwork'
   model.add(content)
   const materials = new Map<string, THREE.MeshStandardMaterial>()
+  const surfaces = new Map<string, THREE.MeshStandardMaterial>()
   const up = new THREE.Vector3(0, 1, 0)
 
   function material(color: string, metalness = 0.2) {
@@ -49,7 +50,9 @@ export function createPipeModel(): THREE.Group {
   }
 
   function mesh(id: string, geometry: THREE.BufferGeometry, surface: THREE.MeshStandardMaterial) {
-    const result = new THREE.Mesh(geometry, surface)
+    const key = `${id}:${surface.uuid}`
+    if (!surfaces.has(key)) surfaces.set(key, surface.clone())
+    const result = new THREE.Mesh(geometry, surfaces.get(key)!)
     result.name = id
     result.userData = { facilityId: id, title: FACILITIES[id].name, layer: FACILITIES[id].layer }
     result.castShadow = true
@@ -138,6 +141,7 @@ export function createPipeModel(): THREE.Group {
   // Never lift the lowest point to the floor: the floor is the drawing's road datum.
   model.userData = { width: size.x, height: size.y, depth: size.z, units: 'metres', groundY: 0 }
   model.updateMatrixWorld(true)
+  materials.forEach(material => material.dispose())
   return model
 }
 

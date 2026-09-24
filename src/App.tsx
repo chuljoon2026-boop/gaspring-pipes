@@ -190,7 +190,7 @@ function WorkerHome({ session, go, logout }: { session: Session; go: (p: Page) =
   return <section className="worker-home">
     <div className="field-title"><div><span className="eyebrow">한빛산단 앞 도로</span><h1>지하매설물 조회</h1></div><div className="worker-id"><span>{session.name}</span><button onClick={logout} aria-label="로그아웃"><LogOut size={17} /></button></div></div>
     <div className="worker-launchers">
-      <button className="worker-launcher worker-launcher--ar" onClick={() => go('ar')}><ScanLine size={40} /><h2>지하 투시 AR</h2><strong>AR 실행 <ArrowRight size={18} /></strong></button>
+      <button className="worker-launcher worker-launcher--ar" onClick={() => go('ar')}><ScanLine size={40} /><h2>매설배관 AR 조회</h2><strong>AR 실행 <ArrowRight size={18} /></strong></button>
       <button className="worker-launcher" onClick={() => go('viewer')}><Box size={40} /><h2>3D 배관 조회</h2><strong>3D 조회 <ArrowRight size={18} /></strong></button>
     </div>
   </section>

@@ -8,7 +8,7 @@ async function openAR(page: Page) {
   await page.getByRole('button', { name: '현장 확인', exact: true }).click()
   await expect(page).toHaveURL(/location=YS-001#ar$/)
   await expect(page.locator('[data-ar-mode="underground"]')).toHaveAttribute('data-ar-phase', 'idle')
-  await expect(page.getByRole('heading', { name: '지하 투시 AR', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '매설배관 AR 조회', exact: true })).toBeVisible()
 }
 
 function collectErrors(page: Page) {
@@ -377,41 +377,7 @@ test('leaving AR during camera permission acquisition releases a late stream', a
   expect(errors).toEqual([])
 })
 
-async function maskState(page: Page) {
-  return page.evaluate(async () => {
-    const url = performance.getEntriesByType('resource').map(entry => entry.name).find(name => name.includes('react-three_fiber'))!
-    const fiber = await import(/* @vite-ignore */ url)
-    const state = fiber._roots.get(document.querySelector('canvas')).store.getState()
-    const tube = state.scene.getObjectByName('PipeNetwork').children.find((o: {geometry?: {type: string}}) => o.geometry?.type === 'TubeGeometry')
-    const shader = { uniforms: {} as Record<string, { value: any }>, vertexShader: '#include <project_vertex>', fragmentShader: '#include <clipping_planes_fragment>' }
-    tube.material.onBeforeCompile(shader, state.gl)
-    const { data, width, height } = shader.uniforms.groundMask.value.image
-    const pixel = (u: number, v: number) => data[Math.floor(v * height) * width + Math.floor(u * width)]
-    return { enabled: shader.uniforms.groundMaskEnabled.value, floor: pixel(0.2, 0.7), object: pixel(0.5, 0.7), unknown: pixel(0.5, 0.01), feather: Array.from(data as Uint8Array).filter(value => value > 0 && value < 255).length, count: Array.from(data as Uint8Array).filter(value => value > 180).length }
-  })
-}
-
-test('depth masks preserve floor but occlude foreground objects and never reuse missing depth', async ({ page }) => {
-  const errors = collectErrors(page)
-  page.on('console', message => { if (message.type() === 'error' && /Shader|WebGLProgram/.test(message.text())) errors.push(message.text()) })
-  await installXRMock(page)
-  await openAR(page)
-  await page.evaluate(() => window.__xrMock.setDepthMode('obstacle'))
-  await page.getByRole('button', { name: '카메라 켜기', exact: true }).click()
-  await expect(page.locator('[data-ground-mask]')).toHaveAttribute('data-ground-mask', 'depth')
-  await expect.poll(async () => (await maskState(page)).floor).toBe(255)
-  expect((await maskState(page)).object).toBe(0)
-  expect((await maskState(page)).feather).toBeGreaterThan(20)
-  expect((await maskState(page)).unknown).toBeLessThan(107)
-  await page.evaluate(() => window.__xrMock.setDepthMode('missing'))
-  await expect.poll(async () => (await maskState(page)).count).toBe(0)
-  await page.evaluate(() => window.__xrMock.setDepthMode('floor'))
-  await expect.poll(async () => (await maskState(page)).object).toBe(255)
-  await page.getByRole('button', { name: '종료', exact: true }).click()
-  expect(errors).toEqual([])
-})
-
-test('ordinary camera automatically segments real floor and shows selectable pipe metadata', async ({ page }, info) => {
+test('camera starts without segmentation and selection changes actual pipe appearance', async ({ page }, info) => {
   const errors = collectErrors(page)
   page.on('console', message => { if (message.type() === 'error' && /Ground segmentation|Shader|WebGLProgram/.test(message.text())) errors.push(message.text()) })
   const photo = 'data:image/jpeg;base64,' + readFileSync('tests/fixtures/ground-scene.jpg').toString('base64')
@@ -420,16 +386,32 @@ test('ordinary camera automatically segments real floor and shows selectable pip
   await page.getByRole('button', { name: '카메라 켜기', exact: true }).click()
   await expect(page.locator('[data-ar-phase]')).toHaveAttribute('data-ar-phase', 'searching')
   await sensor(page, 0, 55)
-  await expect(page.locator('[data-ground-mask]')).toHaveAttribute('data-ground-mask', 'vision', { timeout: 30_000 })
-  await expect.poll(async () => (await maskState(page)).count).toBeGreaterThan(200)
-  await expect.poll(async () => (await cameraState(page)).visible).toBe(true)
-  expect((await maskState(page)).unknown).toBeLessThan(107)
+  await expect(page.locator('[data-ar-phase]')).toHaveAttribute('data-ar-phase', 'placed')
+  expect((await cameraState(page)).visible).toBe(true)
   const card = page.getByRole('region', { name: '배관 정보', exact: true })
   await expect(card).toContainText('중심 심도 1.85 m')
   await expect(card).toContainText('관경 300 mm')
   await page.getByLabel('관로', { exact: true }).selectOption('GP-003')
   await expect(card).toContainText('중심 심도 2.10 m')
   await expect(card).toContainText('관경 250 mm')
+  await expect.poll(async () => (await cameraState(page)).opacity).toBeCloseTo(0.48 * 0.22)
+  // Tap GP-001 at its projected centre; this must update both metadata and material.
+  const point = await page.evaluate(async () => {
+    const url = performance.getEntriesByType('resource').map(e => e.name).find(n => n.includes('react-three_fiber'))!
+    const fiber = await import(/* @vite-ignore */ url)
+    const canvas = document.querySelector('canvas')!
+    const state = fiber._roots.get(canvas).store.getState()
+    const content = state.scene.getObjectByName('PipeNetwork')
+    const p = content.localToWorld(content.position.clone().set(-7, -1.85, -7)).project(state.camera)
+    const r = canvas.getBoundingClientRect()
+    return { x: r.left + (p.x + 1) * r.width / 2, y: r.top + (1 - p.y) * r.height / 2 }
+  })
+  await page.mouse.click(point.x, point.y)
+  await expect(page.getByLabel('관로', { exact: true })).toHaveValue('GP-001')
+  await expect(card).toContainText('중심 심도 1.85 m')
+  await expect.poll(async () => (await cameraState(page)).opacity).toBe(0.48)
+  expect(await page.evaluate(() => performance.getEntriesByType('resource').map(e => e.name).filter(n => /models\/|\.wasm|groundVision/.test(n)))).toEqual([])
+
   await expect(page.getByRole('button', { name: '심도 기준선', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('button', { name: '심도 기준선', exact: true }).click()
   await expect(page.getByRole('button', { name: '심도 기준선', exact: true })).toHaveAttribute('aria-pressed', 'false')
@@ -442,17 +424,15 @@ test('ordinary camera automatically segments real floor and shows selectable pip
   expect(errors).toEqual([])
 })
 
-test('XR without depth automatically switches to camera vision with one start tap', async ({ page }) => {
+test('XR works without depth sensing or a second camera stream', async ({ page }) => {
   await installCameraMock(page)
   await installXRMock(page)
   await openAR(page)
   await page.evaluate(() => window.__xrMock.setDepthMode('unsupported'))
   await page.getByRole('button', { name: '카메라 켜기', exact: true }).click()
-  await expect(page.locator('[data-ar-backend]')).toHaveAttribute('data-ar-backend', 'camera')
-  await expect(page.locator('[data-ar-phase]')).toHaveAttribute('data-ar-phase', 'searching')
-  await sensor(page, 0, 55)
+  await expect(page.locator('[data-ar-backend]')).toHaveAttribute('data-ar-backend', 'webxr')
   await expect(page.locator('[data-ar-phase]')).toHaveAttribute('data-ar-phase', 'placed')
-  expect(await page.evaluate(() => window.__xrMock.sessionsEnded)).toBe(1)
+  expect((await worldState(page)).visible).toBe(true)
+  expect(await page.evaluate(() => (window as any).__cameraMock.acquired)).toBe(0)
   await page.getByRole('button', { name: '종료', exact: true }).click()
-  expect((await cameraState(page)).stopped).toBe(1)
 })

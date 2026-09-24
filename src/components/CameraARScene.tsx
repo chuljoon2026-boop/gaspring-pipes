@@ -5,16 +5,16 @@ import { createPipeModel, disposePipeModel } from '../ar/createPipeModel'
 import { DEMO_GIS } from '../ar/demoGIS'
 import DepthReference from './DepthReference'
 import { FACILITIES } from '../network'
-import { startGroundVision } from '../ar/groundVision'
-import type { GroundMask } from '../ar/GroundMask'
+import PipePicker from './PipePicker'
+import { canvasEvents } from '../ar/canvasEvents'
 import type { ARPhase, UndergroundSettings } from './FloorARScene'
 
 export interface CameraARHandle { start: () => Promise<void>; end: () => Promise<void>; reset: () => void }
-type Props = { groundMask: GroundMask; settings: UndergroundSettings; onPhase: (phase: ARPhase) => void; onReady: () => void; onError: (message: string) => void }
+type Props = { onSelect: (id: string) => void; settings: UndergroundSettings; onPhase: (phase: ARPhase) => void; onReady: () => void; onError: (message: string) => void }
 type OrientationAccess = typeof DeviceOrientationEvent & { requestPermission?: () => Promise<string> }
 
-function OverlayWorld({ settings, orientation, active, onPhase, resetVersion, groundMask }: {
-  groundMask: GroundMask;
+function OverlayWorld({ settings, orientation, active, onPhase, resetVersion, onSelect }: {
+  onSelect: (id: string) => void;
   settings: UndergroundSettings; orientation: React.RefObject<THREE.Quaternion | null>;
   active: boolean; onPhase: Props['onPhase']; resetVersion: number;
 }) {
@@ -23,33 +23,32 @@ function OverlayWorld({ settings, orientation, active, onPhase, resetVersion, gr
   useEffect(() => {
     if (!active) return
     const timer = window.setInterval(() => {
-      // Do not spend GPU time clearing invisible frames during model startup.
-      if (!registered.current || root.current?.visible || groundMask.pixels.some(value => value > 128)) invalidate()
-    }, 50)
+      // Bound overlay rendering independently of the camera stream.
+      invalidate()
+    }, 1000 / 30)
     return () => clearInterval(timer)
-  }, [active, invalidate, groundMask])
+  }, [active, invalidate])
   const root = useRef<THREE.Group>(null)
   const registered = useRef(false)
   const disposal = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const scratch = useMemo(() => ({ direction: new THREE.Vector3(), up: new THREE.Vector3(0, 1, 0) }), [])
   useEffect(() => {
     clearTimeout(disposal.current)
-    groundMask.attach(model)
     return () => { disposal.current = setTimeout(() => disposePipeModel(model), 0) }
-  }, [model, groundMask])
-  useEffect(() => { groundMask.reset(); groundMask.enabled.value = active ? 1 : 0; registered.current = false; if (root.current) root.current.visible = false }, [active, resetVersion, groundMask])
+  }, [model])
+  useEffect(() => { registered.current = false; if (root.current) root.current.visible = false }, [active, resetVersion])
   useEffect(() => {
     model.getObjectByName('PipeNetwork')!.position.set(...DEMO_GIS.drawingOffset)
     model.traverse(object => {
       if (!(object instanceof THREE.Mesh)) return
       object.visible = object.userData.layer === 'gas' ? settings.gas : object.userData.layer === 'utilities' ? settings.utilities : false
       for (const material of (Array.isArray(object.material) ? object.material : [object.material])) {
-        material.opacity = settings.opacity
+        material.opacity = object.userData.facilityId === settings.facilityId ? settings.opacity : settings.opacity * 0.22
         material.depthWrite = false
         material.clippingPlanes = [new THREE.Plane(new THREE.Vector3(0, -1, 0), 0.012)]
       }
     })
-  }, [model, settings.gas, settings.utilities, settings.opacity])
+  }, [model, settings.facilityId, settings.gas, settings.utilities, settings.opacity])
   useFrame(({ camera }) => {
     if (!active || !orientation.current || !root.current) return
     camera.position.set(0, DEMO_GIS.cameraHeight, 0)
@@ -62,31 +61,28 @@ function OverlayWorld({ settings, orientation, active, onPhase, resetVersion, gr
       root.current.visible = true
       onPhase('placed')
     }
-    root.current.visible = registered.current && groundMask.pixels.some(value => value > 128)
+    root.current.visible = registered.current
     camera.updateMatrixWorld()
 
   })
   return <><ambientLight intensity={0.8} /><directionalLight position={[-3, 7, 2]} intensity={2.6} />
-    <group ref={root} name="camera-gis-origin" visible={false}><primitive object={model} dispose={null} />{settings.guides && (FACILITIES[settings.facilityId].layer === 'gas' ? settings.gas : settings.utilities) && <DepthReference key={settings.facilityId} facilityId={settings.facilityId} groundMask={groundMask} />}</group></>
+    <group ref={root} name="camera-gis-origin" visible={false}><primitive object={model} dispose={null} /><PipePicker model={model} onSelect={onSelect} />{settings.guides && (FACILITIES[settings.facilityId].layer === 'gas' ? settings.gas : settings.utilities) && <DepthReference key={settings.facilityId} facilityId={settings.facilityId} />}</group></>
 }
 
 /** Camera + orientation fallback. Rotation only; ground height is assumed,
  * not detected. Explicitly labelled in UI, with no simulated walking/GPS. */
-const CameraARScene = forwardRef<CameraARHandle, Props>(function CameraARScene({ settings, onPhase, onReady, onError, groundMask }, ref) {
+const CameraARScene = forwardRef<CameraARHandle, Props>(function CameraARScene({ settings, onPhase, onReady, onError, onSelect }, ref) {
   const video = useRef<HTMLVideoElement>(null)
   const stream = useRef<MediaStream | null>(null)
   const orientation = useRef<THREE.Quaternion | null>(null)
   const alive = useRef(true)
   const generation = useRef(0)
-  const visionStop = useRef<(() => void) | null>(null)
   const sensorTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const [active, setActive] = useState(false)
   const [resetVersion, setResetVersion] = useState(0)
   const callbacks = useRef({ onPhase, onError, onReady })
   callbacks.current = { onPhase, onError, onReady }
   const stop = useCallback(async () => {
-    visionStop.current?.(); visionStop.current = null
-    groundMask.clear()
     generation.current++
     clearTimeout(sensorTimer.current)
     stream.current?.getTracks().forEach(track => { track.onended = null; track.stop() })
@@ -94,7 +90,7 @@ const CameraARScene = forwardRef<CameraARHandle, Props>(function CameraARScene({
     if (video.current) video.current.srcObject = null
     orientation.current = null
     if (alive.current) { setActive(false); callbacks.current.onPhase('idle') }
-  }, [groundMask])
+  }, [])
   useImperativeHandle(ref, () => ({
     async start() {
       const token = ++generation.current
@@ -104,7 +100,7 @@ const CameraARScene = forwardRef<CameraARHandle, Props>(function CameraARScene({
       const permission = api.requestPermission ? await api.requestPermission() : 'granted'
       if (permission !== 'granted') throw new Error('동작 및 방향 권한을 허용해 주세요.')
       if (!alive.current || token !== generation.current) return
-      const next = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
+      const next = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30, max: 30 } }, audio: false })
       if (!alive.current || token !== generation.current) { next.getTracks().forEach(track => track.stop()); return }
       stream.current = next
       try {
@@ -113,9 +109,6 @@ const CameraARScene = forwardRef<CameraARHandle, Props>(function CameraARScene({
         await video.current.play()
         if (!alive.current || token !== generation.current) return
         next.getVideoTracks().forEach(track => { track.onended = () => { void stop(); callbacks.current.onError('카메라가 종료되었습니다. 다시 시작해 주세요.') } })
-        visionStop.current = startGroundVision(video.current, groundMask, orientation, message => {
-          if (alive.current && token === generation.current) callbacks.current.onError(message)
-        })
         setActive(true)
         callbacks.current.onPhase('searching')
         sensorTimer.current = setTimeout(() => {
@@ -156,9 +149,9 @@ const CameraARScene = forwardRef<CameraARHandle, Props>(function CameraARScene({
   }, [stop])
   return <div className="camera-ar-scene">
     <video ref={video} muted playsInline autoPlay aria-label="후면 카메라" />
-    <Canvas frameloop="demand" camera={{ position: [0, 1.4, 0], near: 0.05, far: 100, fov: 65 }}
+    <Canvas events={canvasEvents} frameloop="demand" camera={{ position: [0, 1.4, 0], near: 0.05, far: 100, fov: 65 }}
       gl={{ alpha: true, antialias: true }} dpr={[1, 1.25]} onCreated={({ gl }) => { gl.setClearAlpha(0); gl.localClippingEnabled = true }}>
-      <OverlayWorld groundMask={groundMask} settings={settings} orientation={orientation} active={active} onPhase={onPhase} resetVersion={resetVersion} />
+      <OverlayWorld onSelect={onSelect} settings={settings} orientation={orientation} active={active} onPhase={onPhase} resetVersion={resetVersion} />
     </Canvas>
   </div>
 })
