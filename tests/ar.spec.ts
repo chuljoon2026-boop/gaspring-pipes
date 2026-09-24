@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { readFileSync } from 'node:fs'
 import { installXRMock } from './xr-mock'
 
 async function openAR(page: Page) {
@@ -232,8 +233,8 @@ test('permission rejection leaves AR idle and lets the user retry successfully',
 })
 
 
-async function installCameraMock(page: Page) {
-  await page.addInitScript(() => {
+async function installCameraMock(page: Page, sceneImage = '') {
+  await page.addInitScript((sceneImage) => {
     Reflect.deleteProperty(navigator, 'xr')
     Reflect.deleteProperty(Object.getPrototypeOf(navigator), 'xr')
     Object.defineProperty(DeviceOrientationEvent, 'requestPermission', { configurable: true, value: async () => 'granted' })
@@ -247,6 +248,12 @@ async function installCameraMock(page: Page) {
       ctx.strokeStyle = '#8a8c85'; ctx.lineWidth = 3
       for (let y = 0; y < 1280; y += 90) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(720, y); ctx.stroke() }
       for (let x = 0; x < 720; x += 180) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 1280); ctx.stroke() }
+      if (sceneImage) {
+        const image = new Image(); image.src = sceneImage; await image.decode()
+        canvas.width = image.width; canvas.height = image.height
+        // A camera aimed down: retain furniture edges above the foreground floor.
+        ctx.drawImage(image, 0, image.height * 0.45, image.width, image.height * 0.55, 0, 0, canvas.width, canvas.height)
+      }
       const stream = canvas.captureStream(15)
       counter.acquired++
       stream.getTracks().forEach(track => {
@@ -255,7 +262,7 @@ async function installCameraMock(page: Page) {
       })
       return stream
     } })
-  })
+  }, sceneImage)
 }
 
 async function sensor(page: Page, alpha: number, beta: number) {
@@ -368,4 +375,79 @@ test('leaving AR during camera permission acquisition releases a late stream', a
   await page.evaluate(() => (window as unknown as { __releaseCamera: () => Promise<void> }).__releaseCamera())
   await expect.poll(() => page.evaluate(() => (window as unknown as { __cameraMock: { stopped: number } }).__cameraMock.stopped)).toBe(1)
   expect(errors).toEqual([])
+})
+
+async function maskState(page: Page) {
+  return page.evaluate(async () => {
+    const url = performance.getEntriesByType('resource').map(entry => entry.name).find(name => name.includes('react-three_fiber'))!
+    const fiber = await import(/* @vite-ignore */ url)
+    const state = fiber._roots.get(document.querySelector('canvas')).store.getState()
+    const tube = state.scene.getObjectByName('PipeNetwork').children.find((o: {geometry?: {type: string}}) => o.geometry?.type === 'TubeGeometry')
+    const shader = { uniforms: {} as Record<string, { value: any }>, vertexShader: '#include <project_vertex>', fragmentShader: '#include <clipping_planes_fragment>' }
+    tube.material.onBeforeCompile(shader, state.gl)
+    const { data, width, height } = shader.uniforms.groundMask.value.image
+    const pixel = (u: number, v: number) => data[Math.floor(v * height) * width + Math.floor(u * width)]
+    return { enabled: shader.uniforms.groundMaskEnabled.value, floor: pixel(0.2, 0.7), object: pixel(0.5, 0.7), unknown: pixel(0.5, 0.01), count: Array.from(data as Uint8Array).filter(Boolean).length }
+  })
+}
+
+test('depth masks preserve floor but occlude foreground objects and never reuse missing depth', async ({ page }) => {
+  const errors = collectErrors(page)
+  page.on('console', message => { if (message.type() === 'error' && /Shader|WebGLProgram/.test(message.text())) errors.push(message.text()) })
+  await installXRMock(page)
+  await openAR(page)
+  await page.evaluate(() => window.__xrMock.setDepthMode('obstacle'))
+  await page.getByRole('button', { name: '카메라 켜기', exact: true }).click()
+  await expect(page.locator('[data-ground-mask]')).toHaveAttribute('data-ground-mask', 'depth')
+  await expect.poll(async () => (await maskState(page)).floor).toBe(255)
+  expect((await maskState(page)).object).toBe(0)
+  expect((await maskState(page)).unknown).toBe(0)
+  await page.evaluate(() => window.__xrMock.setDepthMode('missing'))
+  await expect.poll(async () => (await maskState(page)).count).toBe(0)
+  await page.evaluate(() => window.__xrMock.setDepthMode('floor'))
+  await expect.poll(async () => (await maskState(page)).object).toBe(255)
+  await page.getByRole('button', { name: '종료', exact: true }).click()
+  expect(errors).toEqual([])
+})
+
+test('ordinary camera automatically segments real floor and shows selectable pipe metadata', async ({ page }, info) => {
+  const errors = collectErrors(page)
+  page.on('console', message => { if (message.type() === 'error' && /Ground segmentation|Shader|WebGLProgram/.test(message.text())) errors.push(message.text()) })
+  const photo = 'data:image/jpeg;base64,' + readFileSync('tests/fixtures/ground-scene.jpg').toString('base64')
+  await installCameraMock(page, photo)
+  await openAR(page)
+  await page.getByRole('button', { name: '카메라 켜기', exact: true }).click()
+  await expect(page.locator('[data-ar-phase]')).toHaveAttribute('data-ar-phase', 'searching')
+  await sensor(page, 0, 55)
+  await expect(page.locator('[data-ground-mask]')).toHaveAttribute('data-ground-mask', 'vision', { timeout: 30_000 })
+  await expect.poll(async () => (await maskState(page)).count).toBeGreaterThan(200)
+  await expect.poll(async () => (await cameraState(page)).visible).toBe(true)
+  expect((await maskState(page)).unknown).toBe(0)
+  const card = page.getByRole('region', { name: '배관 정보', exact: true })
+  await expect(card).toContainText('중심 심도 1.85 m')
+  await expect(card).toContainText('관경 300 mm')
+  await page.getByLabel('관로', { exact: true }).selectOption('GP-003')
+  await expect(card).toContainText('중심 심도 2.10 m')
+  await expect(card).toContainText('관경 250 mm')
+  await expect(page.getByRole('button', { name: /지면 영역/ })).toHaveCount(0)
+  await page.screenshot({ path: `artifacts/vision/${info.project.name}-automatic-camera.png` })
+  await page.getByRole('button', { name: '종료', exact: true }).click()
+  await expect(page.locator('[data-ar-phase]')).toHaveAttribute('data-ar-phase', 'idle')
+  expect((await cameraState(page)).stopped).toBe(1)
+  expect(errors).toEqual([])
+})
+
+test('XR without depth automatically switches to camera vision with one start tap', async ({ page }) => {
+  await installCameraMock(page)
+  await installXRMock(page)
+  await openAR(page)
+  await page.evaluate(() => window.__xrMock.setDepthMode('unsupported'))
+  await page.getByRole('button', { name: '카메라 켜기', exact: true }).click()
+  await expect(page.locator('[data-ar-backend]')).toHaveAttribute('data-ar-backend', 'camera')
+  await expect(page.locator('[data-ar-phase]')).toHaveAttribute('data-ar-phase', 'searching')
+  await sensor(page, 0, 55)
+  await expect(page.locator('[data-ar-phase]')).toHaveAttribute('data-ar-phase', 'placed')
+  expect(await page.evaluate(() => window.__xrMock.sessionsEnded)).toBe(1)
+  await page.getByRole('button', { name: '종료', exact: true }).click()
+  expect((await cameraState(page)).stopped).toBe(1)
 })

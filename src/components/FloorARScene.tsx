@@ -5,6 +5,7 @@ import * as THREE from 'three'
 import { createPipeModel, disposePipeModel } from '../ar/createPipeModel'
 import { FACILITIES } from '../network'
 import { DEMO_GIS } from '../ar/demoGIS'
+import type { GroundMask } from '../ar/GroundMask'
 
 export type ARPhase = 'idle' | 'searching' | 'surface' | 'placed' | 'lost'
 export interface FloorARHandle {
@@ -15,7 +16,7 @@ export interface FloorARHandle {
 export type UndergroundSettings = {
   facilityId: string; heading: number; depthOffset: number; gas: boolean; utilities: boolean; guides: boolean; opacity: number
 }
-type Props = { settings: UndergroundSettings; onPhase: (phase: ARPhase) => void; onReady: () => void }
+type Props = { groundMask: GroundMask; settings: UndergroundSettings; onPhase: (phase: ARPhase) => void; onReady: () => void }
 
 function DepthLabel({ text, position, color = '#ffffff' }: { text: string; position: [number, number, number]; color?: string }) {
   const texture = useMemo(() => {
@@ -50,7 +51,7 @@ function DepthGuides({ depth, label }: { depth: number; label: string }) {
   </group>
 }
 
-const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ settings, onPhase, onReady }, ref) {
+const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ settings, onPhase, onReady, groundMask }, ref) {
   const { gl, camera, scene, invalidate } = useThree()
   const model = useMemo(createPipeModel, [])
   const selected = FACILITIES[settings.facilityId]
@@ -86,14 +87,17 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
   }, [])
   const resetPlacement = useCallback(() => {
     placementId.current += 1
+    groundMask.reset()
     placed.current = false
     stableSince.current = null
     anchorRef.current?.delete()
     anchorRef.current = null
     if (root.current) root.current.visible = false
     phase('searching')
-  }, [phase])
+  }, [phase, groundMask])
   const cleanup = useCallback(() => {
+    groundMask.enabled.value = 0
+    groundMask.reset()
     generation.current += 1
     placementId.current += 1
     sourceRef.current?.cancel()
@@ -115,7 +119,7 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
     if (activeRef.current) setActive(false)
     phase('idle')
     invalidate()
-  }, [camera, groundClip, invalidate, phase, resetPlacement])
+  }, [camera, groundClip, invalidate, phase, resetPlacement, groundMask])
   const end = useCallback(async () => {
     const session = sessionRef.current
     if (session) {
@@ -128,6 +132,7 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
       const token = ++generation.current
       sessionRef.current = session
       resetPlacement()
+      groundMask.enabled.value = 1
       setActive(true)
       session.addEventListener('end', cleanup)
       try {
@@ -155,6 +160,7 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
   }))
   useEffect(() => {
     clearTimeout(disposal.current)
+    groundMask.attach(model)
     activeRef.current = true
     camera.position.set(4, 4, 7)
     camera.lookAt(0, -1.3, 0)
@@ -168,7 +174,7 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
       // StrictMode immediately reconnects this effect. Dispose only after a real unmount.
       disposal.current = setTimeout(() => disposePipeModel(model), 0)
     }
-  }, [model, camera, gl, cleanup])
+  }, [model, camera, gl, cleanup, groundMask])
   useEffect(() => {
     // Horizontal registration only: preserve the original negative burial coordinates.
     const content = model.getObjectByName('PipeNetwork')!
@@ -203,6 +209,7 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
       root.current.visible = false
       reticle.current.visible = false
         stableSince.current = null
+      groundMask.clear()
       phase('lost')
       return
     }
@@ -210,7 +217,7 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
       let matrix = fixedMatrix
       if (anchorRef.current) {
         const pose = frame.getPose(anchorRef.current.anchorSpace, space)
-        if (!pose) { root.current.visible = false; phase('lost'); return }
+        if (!pose) { root.current.visible = false; groundMask.clear(); phase('lost'); return }
         matrix = scratch.matrix.fromArray(pose.transform.matrix).multiply(anchorOffset)
       }
       root.current.matrix.copy(matrix)
@@ -218,6 +225,13 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
       root.current.matrixWorldNeedsUpdate = true
       root.current.visible = true
       reticle.current.visible = false
+      // Restrict automatic masks to a single handheld view. A stereo view
+      // requires separate per-eye textures and is deliberately not guessed.
+      if (session.depthUsage === 'cpu-optimized' && viewer.views.length === 1) {
+        let info: XRCPUDepthInformation | null | undefined
+        try { info = frame.getDepthInformation(viewer.views[0]) } catch { info = null }
+        groundMask.updateDepth(info, viewer.views[0], matrix.elements[13])
+      } else groundMask.clear()
       phase('placed')
       return
     }

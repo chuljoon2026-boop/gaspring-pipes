@@ -9,6 +9,7 @@ export interface XRMockControl {
   setGroundHeight(y: number): void
   setTracking(available: boolean): void
   setSurface(available: boolean): void
+  setDepthMode(mode: 'floor' | 'obstacle' | 'missing' | 'unsupported'): void
   select(): void
   end(): Promise<void>
   readonly hitsCanceled: number
@@ -34,6 +35,7 @@ export async function installXRMock(page: Page): Promise<void> {
     const nativeRAF = window.requestAnimationFrame.bind(window)
     const nativeCancelRAF = window.cancelAnimationFrame.bind(window)
     const state = {
+      depthMode: 'floor' as 'floor' | 'obstacle' | 'missing' | 'unsupported',
       x: 0, z: 0, yaw: 0, groundY: 0, tracking: true, surface: true,
       hitsCanceled: 0, sessionsEnded: 0, sessionsStarted: 0, anchorsDeleted: 0,
     }
@@ -162,6 +164,20 @@ export async function installXRMock(page: Page): Promise<void> {
         }
       }
 
+      getDepthInformation(view: { projectionMatrix: Float32Array }) {
+        if (state.depthMode === 'missing') return null
+        if (state.depthMode === 'unsupported') throw new DOMException('No depth', 'NotSupportedError')
+        const matrix = this.viewer.matrix
+        return { getDepthInMeters(u: number, v: number) {
+          if (state.depthMode === 'obstacle' && u > 0.35 && u < 0.65 && v > 0.35 && v < 0.85) return 0.7
+          const x = (u * 2 - 1) / view.projectionMatrix[0]
+          const y = (1 - v * 2) / view.projectionMatrix[5]
+          const rayY = matrix[1] * x + matrix[5] * y - matrix[9]
+          const zDepth = (state.groundY - 1.4) / rayY
+          return rayY < 0 && zDepth < 15 ? zDepth : 0
+        } }
+      }
+
       getHitTestResults(source: MockHitTestSource) {
         if (!state.tracking || !state.surface || source.canceled || this.session.ended) return []
         const transform = this.hit
@@ -200,6 +216,7 @@ export async function installXRMock(page: Page): Promise<void> {
     }
 
     class MockSession extends EventTarget {
+      get depthUsage() { return state.depthMode === 'unsupported' ? undefined : 'cpu-optimized' }
       ended = false
       inputSources: never[] = []
       environmentBlendMode = 'alpha-blend'
@@ -275,6 +292,7 @@ export async function installXRMock(page: Page): Promise<void> {
       setGroundHeight(y) { state.groundY = y },
       setTracking(available) { state.tracking = available },
       setSurface(available) { state.surface = available },
+      setDepthMode(mode) { state.depthMode = mode },
       select() {
         if (!activeSession || activeSession.ended) return
         const event = new Event('select')

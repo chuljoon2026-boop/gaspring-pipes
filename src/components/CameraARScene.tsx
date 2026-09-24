@@ -1,28 +1,41 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { createPipeModel, disposePipeModel } from '../ar/createPipeModel'
 import { DEMO_GIS } from '../ar/demoGIS'
+import { startGroundVision } from '../ar/groundVision'
+import type { GroundMask } from '../ar/GroundMask'
 import type { ARPhase, UndergroundSettings } from './FloorARScene'
 
 export interface CameraARHandle { start: () => Promise<void>; end: () => Promise<void>; reset: () => void }
-type Props = { settings: UndergroundSettings; onPhase: (phase: ARPhase) => void; onReady: () => void; onError: (message: string) => void }
+type Props = { groundMask: GroundMask; settings: UndergroundSettings; onPhase: (phase: ARPhase) => void; onReady: () => void; onError: (message: string) => void }
 type OrientationAccess = typeof DeviceOrientationEvent & { requestPermission?: () => Promise<string> }
 
-function OverlayWorld({ settings, orientation, active, onPhase, resetVersion }: {
+function OverlayWorld({ settings, orientation, active, onPhase, resetVersion, groundMask }: {
+  groundMask: GroundMask;
   settings: UndergroundSettings; orientation: React.RefObject<THREE.Quaternion | null>;
   active: boolean; onPhase: Props['onPhase']; resetVersion: number;
 }) {
   const model = useMemo(createPipeModel, [])
+  const invalidate = useThree(state => state.invalidate)
+  useEffect(() => {
+    if (!active) return
+    const timer = window.setInterval(() => {
+      // Do not spend GPU time clearing invisible frames during model startup.
+      if (!registered.current || root.current?.visible || groundMask.pixels.some(value => value > 0)) invalidate()
+    }, 50)
+    return () => clearInterval(timer)
+  }, [active, invalidate, groundMask])
   const root = useRef<THREE.Group>(null)
   const registered = useRef(false)
   const disposal = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const scratch = useMemo(() => ({ direction: new THREE.Vector3(), up: new THREE.Vector3(0, 1, 0) }), [])
   useEffect(() => {
     clearTimeout(disposal.current)
+    groundMask.attach(model)
     return () => { disposal.current = setTimeout(() => disposePipeModel(model), 0) }
-  }, [model])
-  useEffect(() => { registered.current = false; if (root.current) root.current.visible = false }, [active, resetVersion])
+  }, [model, groundMask])
+  useEffect(() => { groundMask.reset(); groundMask.enabled.value = active ? 1 : 0; registered.current = false; if (root.current) root.current.visible = false }, [active, resetVersion, groundMask])
   useEffect(() => {
     model.getObjectByName('PipeNetwork')!.position.set(...DEMO_GIS.drawingOffset)
     model.traverse(object => {
@@ -47,6 +60,9 @@ function OverlayWorld({ settings, orientation, active, onPhase, resetVersion }: 
       root.current.visible = true
       onPhase('placed')
     }
+    root.current.visible = registered.current && groundMask.pixels.some(value => value > 0)
+    camera.updateMatrixWorld()
+
   })
   return <><ambientLight intensity={2} /><directionalLight position={[3, 7, 5]} intensity={2} />
     <group ref={root} name="camera-gis-origin" visible={false}><primitive object={model} dispose={null} /></group></>
@@ -54,18 +70,21 @@ function OverlayWorld({ settings, orientation, active, onPhase, resetVersion }: 
 
 /** Camera + orientation fallback. Rotation only; ground height is assumed,
  * not detected. Explicitly labelled in UI, with no simulated walking/GPS. */
-const CameraARScene = forwardRef<CameraARHandle, Props>(function CameraARScene({ settings, onPhase, onReady, onError }, ref) {
+const CameraARScene = forwardRef<CameraARHandle, Props>(function CameraARScene({ settings, onPhase, onReady, onError, groundMask }, ref) {
   const video = useRef<HTMLVideoElement>(null)
   const stream = useRef<MediaStream | null>(null)
   const orientation = useRef<THREE.Quaternion | null>(null)
   const alive = useRef(true)
   const generation = useRef(0)
+  const visionStop = useRef<(() => void) | null>(null)
   const sensorTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const [active, setActive] = useState(false)
   const [resetVersion, setResetVersion] = useState(0)
   const callbacks = useRef({ onPhase, onError, onReady })
   callbacks.current = { onPhase, onError, onReady }
   const stop = useCallback(async () => {
+    visionStop.current?.(); visionStop.current = null
+    groundMask.clear()
     generation.current++
     clearTimeout(sensorTimer.current)
     stream.current?.getTracks().forEach(track => { track.onended = null; track.stop() })
@@ -73,7 +92,7 @@ const CameraARScene = forwardRef<CameraARHandle, Props>(function CameraARScene({
     if (video.current) video.current.srcObject = null
     orientation.current = null
     if (alive.current) { setActive(false); callbacks.current.onPhase('idle') }
-  }, [])
+  }, [groundMask])
   useImperativeHandle(ref, () => ({
     async start() {
       const token = ++generation.current
@@ -92,6 +111,9 @@ const CameraARScene = forwardRef<CameraARHandle, Props>(function CameraARScene({
         await video.current.play()
         if (!alive.current || token !== generation.current) return
         next.getVideoTracks().forEach(track => { track.onended = () => { void stop(); callbacks.current.onError('카메라가 종료되었습니다. 다시 시작해 주세요.') } })
+        visionStop.current = startGroundVision(video.current, groundMask, orientation, message => {
+          if (alive.current && token === generation.current) callbacks.current.onError(message)
+        })
         setActive(true)
         callbacks.current.onPhase('searching')
         sensorTimer.current = setTimeout(() => {
@@ -132,9 +154,9 @@ const CameraARScene = forwardRef<CameraARHandle, Props>(function CameraARScene({
   }, [stop])
   return <div className="camera-ar-scene">
     <video ref={video} muted playsInline autoPlay aria-label="후면 카메라" />
-    <Canvas camera={{ position: [0, 1.4, 0], near: 0.05, far: 100, fov: 65 }}
-      gl={{ alpha: true, antialias: true }} dpr={[1, 1.5]} onCreated={({ gl }) => { gl.setClearAlpha(0); gl.localClippingEnabled = true }}>
-      <OverlayWorld settings={settings} orientation={orientation} active={active} onPhase={onPhase} resetVersion={resetVersion} />
+    <Canvas frameloop="demand" camera={{ position: [0, 1.4, 0], near: 0.05, far: 100, fov: 65 }}
+      gl={{ alpha: true, antialias: true }} dpr={[1, 1.25]} onCreated={({ gl }) => { gl.setClearAlpha(0); gl.localClippingEnabled = true }}>
+      <OverlayWorld groundMask={groundMask} settings={settings} orientation={orientation} active={active} onPhase={onPhase} resetVersion={resetVersion} />
     </Canvas>
   </div>
 })

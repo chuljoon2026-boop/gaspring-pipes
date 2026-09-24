@@ -1,0 +1,3 @@
+Source: https://huggingface.co/Xenova/segformer-b0-finetuned-ade-512-512/tree/d3e5499fa8701ff0453ca940a8dfeae39b2f1504
+Model: SegFormer B0 / ADE20K
+License: NVIDIA Source Code License for SegFormer (research / evaluation only); see LICENSE.txt

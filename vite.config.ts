@@ -40,6 +40,11 @@ export default defineConfig(({ mode }) => {
         workbox: {
           globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+          runtimeCaching: [{
+            urlPattern: ({ url, sameOrigin }) => sameOrigin && /(?:\.wasm$|\.mjs$|\/models\/segformer\/)/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: { cacheName: 'ground-vision-v1', expiration: { maxEntries: 6, maxAgeSeconds: 365 * 24 * 60 * 60 }, cacheableResponse: { statuses: [200] } },
+          }],
           cleanupOutdatedCaches: true,
           skipWaiting: true,
           clientsClaim: true,

@@ -1,0 +1,2 @@
+COCO 2017 validation image 000000000139. Used only as a regression fixture for semantic floor segmentation.
+Source: http://images.cocodataset.org/val2017/000000000139.jpg
