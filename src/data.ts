@@ -1,11 +1,12 @@
 export const LOCATION = {
   id: 'YS-001',
-  name: '여수산단 A-12 구역',
-  address: '전남 여수시 여수산단로 · A-12 구역',
-  coordinates: '34.8258° N, 127.6671° E',
+  name: '한빛산단 앞 도로 (예시)',
+  address: '한빛산단 앞 도로 / 보도 정비 구간 (예시)',
+  coordinates: '실측 좌표 미사용',
   depth: 1.2,
   diameter: 300,
   permit: 'YS-2026-001',
+  receiptNumber: 'DEMO-2026-001',
   password: '1234',
 }
 
@@ -15,6 +16,7 @@ export type Page =
   | 'complete'
   | 'login'
   | 'worker'
+  | 'viewer'
   | 'ar'
   | 'qr'
   | 'guide'
@@ -31,7 +33,7 @@ export type Report = {
 }
 export type Session = { name: string; permit: string; locationId: string }
 const REPORT_KEY = 'gason.reports.v1'
-const AUTH_KEY = 'gason.session.v1'
+const AUTH_KEY = 'gason.worker-session.v2'
 
 export function getReports(): Report[] {
   try {

@@ -21,7 +21,7 @@ function Box({ position, size, color, opacity = 1, metalness = 0, rotation }: {
 }) {
   return <mesh position={position} rotation={rotation} castShadow={opacity === 1} receiveShadow>
     <boxGeometry args={size} />
-    <meshStandardMaterial color={color} transparent={opacity < 1} opacity={opacity} metalness={metalness} roughness={0.8} depthWrite={opacity >= 0.99} />
+    <meshStandardMaterial key={opacity < 1 ? 'transparent' : 'opaque'} color={color} transparent={opacity < 1} opacity={opacity} metalness={metalness} roughness={0.8} depthWrite={opacity >= 0.99} />
   </mesh>
 }
 
@@ -191,7 +191,7 @@ function Fallback({ onRetry }: { mode?: PipeSceneProps['mode']; onRetry?: () => 
     <svg viewBox="0 0 620 340" aria-label="다중 배관 단면" role="img">
       <path d="M35 60H585V81H35Z" fill="#89968d" /><path d="M35 81H585V105H35Z" fill="#c8b99a" /><path d="M35 299H585V320H35Z" fill="#b3b59f" />
       {[[88, 146, 9, '#c5a64d'], [135, 159, 8, '#a48ac3'], [182, 165, 12, '#bc9171'], [229, 150, 9, '#ce9270'], [276, 141, 8, '#78a095'], [323, 156, 7, '#bc8595'], [391, 197, 23, '#6dacc2'], [454, 183, 16, '#6eb0a0'], [530, 261, 35, '#9da991']].map(([cx, cy, r, color], i) => <circle key={i} cx={cx} cy={cy} r={r} fill="#344941" stroke={String(color)} strokeWidth={5} />)}
-      <text x="38" y="45" fill="#53665b" fontSize="16">도로 단면 · 제품관 / 용수 / 배수</text>
+      <text x="38" y="45" fill="#53665b" fontSize="16">도로 단면 / 제품관 / 용수 / 배수</text>
     </svg>
     <strong>3D를 불러오지 못했습니다</strong>
     {onRetry && <button type="button" onClick={onRetry}>다시 불러오기</button>}
@@ -206,7 +206,7 @@ class SceneBoundary extends Component<{ children: ReactNode; mode: PipeSceneProp
 
 export default function PipeScene({ mode = 'underground', showPipes = true, showZones = false, showLabels = true, surfaceOpacity = 0.07, view = 'perspective', resetKey = 0, compact = false, onSelectPipe, showUtilities = true, showStructures = true, exploded = false, selectedId = 'GP-001', showContext = true }: PipeSceneProps) {
   const [attempt, setAttempt] = useState(0)
-  return <div className={`pipe-scene pipe-scene--${mode}${compact ? ' pipe-scene--compact' : ''}`} role="region" aria-label="여수 산단 배관 3D. 6개 제품관, 용수관, 우수·오수관과 전력·통신 관로. 드래그로 회전하고 확대할 수 있습니다.">
+  return <div className={`pipe-scene pipe-scene--${mode}${compact ? ' pipe-scene--compact' : ''}`} role="region" aria-label="예시 산업단지 배관 3D. 6개 제품관, 용수관, 우수/오수관과 전력/통신 관로. 드래그로 회전하고 확대할 수 있습니다.">
     <SceneBoundary key={attempt} mode={mode} onRetry={() => setAttempt(value => value + 1)}>
       <Canvas shadows dpr={[1, 1.5]} camera={{ position: [55, 40, 65], fov: 42, near: 0.08, far: 600 }} gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }} frameloop="demand" fallback={<Fallback mode={mode} onRetry={() => setAttempt(value => value + 1)} />}>
         <World mode={mode} showPipes={showPipes} showZones={showZones} showLabels={showLabels} surfaceOpacity={Math.max(0, Math.min(1, surfaceOpacity))} view={view} resetKey={resetKey} compact={compact} onSelectPipe={onSelectPipe} showUtilities={showUtilities} showStructures={showStructures} exploded={exploded} selectedId={selectedId} showContext={showContext} />

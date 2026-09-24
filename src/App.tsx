@@ -9,18 +9,17 @@ import {
   ChevronDown,
   Copy,
   Download,
-  ExternalLink,
   FilePenLine,
   Layers3,
   LogOut,
+  LockKeyhole,
+  Users,
   Maximize,
-  Map,
   MapPin,
   Printer,
   QrCode,
   RotateCcw,
   ScanLine,
-  ShieldCheck,
   X,
 } from 'lucide-react'
 import QRCode from 'qrcode'
@@ -40,8 +39,7 @@ import { MODEL_SOURCES } from './sources'
 import { PIPE_ROUTES } from './network'
 
 const PipeScene = lazy(() => import('./components/PipeScene'))
-const EOCS_URL = 'https://app.eocs.or.kr/'
-const pages: Page[] = ['home', 'worker', 'login', 'report', 'complete', 'ar', 'qr']
+const pages: Page[] = ['home', 'viewer', 'worker', 'login', 'report', 'complete', 'ar', 'qr']
 const readPage = (): Page => {
   const p = location.hash.slice(1) as Page
   return pages.includes(p) ? p : 'home'
@@ -58,11 +56,7 @@ function Sources() {
       <summary>
         자료 출처 <ChevronDown size={13} />
       </summary>
-      <p>
-        여수산단 공개자료의 관종과 구조를 재구성했습니다. 관로 좌표·관경·심도는 개별 사업자의 실측
-        도면과 연결되지 않았습니다. ‘미신고 지역’은 화면에 설정된 구간 상태이며, 기관의 실시간
-        공사 신고 내역과 연결되어 있지 않습니다.
-      </p>
+      <p>도로/보도/건물이 있는 산업단지를 재구성한 예시입니다. 배관 위치와 깊이는 데모 값이며 실제 현장 정보와 연결되지 않습니다.</p>
       {MODEL_SOURCES.map((s) => (
         <a key={s.url} href={s.url} target="_blank" rel="noreferrer">
           {s.title}
@@ -78,7 +72,8 @@ export default function App() {
     [receipt, setReceipt] = useState<Report | null>(null),
     [toast, setToast] = useState('')
   const locationId = new URLSearchParams(location.search).get('location') ?? LOCATION.id
-  const page = (route === 'worker' || route === 'ar') && !session ? 'login' : route
+  const page = (route === 'worker' || route === 'viewer' || route === 'ar') && !session ? 'login' : route
+  const workerArea = page === 'worker' || page === 'viewer' || page === 'login'
   const valid = locationId === LOCATION.id
   useEffect(() => {
     const change = () => {
@@ -94,7 +89,7 @@ export default function App() {
     }
   }, [])
   useEffect(() => {
-    document.title = '굴착 현장 안전정보 · 여수산단 YS-001'
+    document.title = '지하 배관 AR / 예시 현장 데모'
   }, [])
   useEffect(() => {
     if (!toast) return
@@ -120,31 +115,18 @@ export default function App() {
             <Layers3 size={21} />
           </span>
           <strong>굴착공사 현장 확인</strong>
-          <small>여수산단</small>
+          <small>DEMO</small>
         </button>
-        <nav aria-label="메뉴">
-          <button className={page === 'home' ? 'is-active' : ''} onClick={() => go('home')}>
-            현장
+        <nav className="audience-nav" aria-label="이용자별 메뉴">
+          <button aria-current={!workerArea ? 'page' : undefined} className={!workerArea ? 'is-active' : ''} onClick={() => go('home')}>
+            <Users size={17} /><span>공사 안내<small>누구나 이용</small></span>
           </button>
-          <button
-            className={page === 'worker' || page === 'login' ? 'is-active' : ''}
-            onClick={() => go('worker')}
-          >
-            3D 배관
-          </button>
-          <button className={page === 'report' ? 'is-active' : ''} onClick={() => go('report')}>
-            시민 신고
-          </button>
-          <button
-            className={page === 'qr' ? 'is-active' : ''}
-            onClick={() => go('qr')}
-            aria-label="QR"
-          >
-            <QrCode size={18} />
+          <button aria-current={workerArea ? 'page' : undefined} className={workerArea ? 'is-active' : ''} onClick={() => go('worker')}>
+            <LockKeyhole size={17} /><span>현장 업무<small>{session ? '확인 완료' : '접수번호로 확인'}</small></span>
           </button>
         </nav>
       </header>
-      <main className={`field-main field-main--${page}`}>
+      <main className={`field-main field-main--${page === 'viewer' ? 'worker' : page}`}>
         {!valid ? (
           <section className="compact-card">
             <QrCode size={30} />
@@ -157,7 +139,8 @@ export default function App() {
         ) : (
           <>
             {page === 'home' && <Home go={go} />}
-            {page === 'worker' && session && (
+            {page === 'worker' && session && <WorkerHome session={session} go={go} logout={logout} />}
+            {page === 'viewer' && session && (
               <Workbench session={session} go={go} logout={logout} notify={setToast} />
             )}
             {page === 'login' && (
@@ -165,7 +148,7 @@ export default function App() {
                 onBack={() => go('home')}
                 onSuccess={(s) => {
                   setSession(s)
-                  go(route === 'ar' ? 'ar' : 'worker')
+                  go(route === 'ar' ? 'ar' : route === 'viewer' ? 'viewer' : 'worker')
                 }}
               />
             )}
@@ -193,104 +176,33 @@ export default function App() {
   )
 }
 function Home({ go }: { go: (p: Page) => void }) {
-  return (
-    <>
-      <section className="citizen-home" aria-labelledby="site-lookup-title">
-        <div className="citizen-title">
-          <h1 id="site-lookup-title">미신고 지역</h1>
-          <p className="current-location"><MapPin size={15} /> 여수산단 · {LOCATION.id}</p>
-        </div>
-        <div className="excavation-entry">
-          <h2 className="excavation-instruction">굴착공사현장 50m 이내에서<br />아래 버튼을 눌러주세요</h2>
-          <p className="excavation-description">휴대전화 인증 후 EOCS에서<br />현장 위치와 공사 정보를 확인합니다.</p>
-          <div className="eocs-auth-notice">
-            휴대전화 인증과 개인(위치)정보 이용 동의는<br />EOCS에서 진행됩니다.
-          </div>
-          <div className="eocs-auth-actions">
-            <a href={EOCS_URL} target="_blank" rel="noreferrer" aria-label="EOCS에서 휴대전화 인증">
-              <span>휴대전화 인증</span><strong>인증 <ExternalLink size={13} /></strong>
-            </a>
-            <a href={EOCS_URL} target="_blank" rel="noreferrer" aria-label="EOCS에서 작업 시작 신고">
-              <span>작업 시작 신고</span><strong>신고 <ExternalLink size={13} /></strong>
-            </a>
-          </div>
-          <a className="excavation-circle" href={EOCS_URL} target="_blank" rel="noreferrer" aria-label="굴착현장 확인">
-            <strong>굴착현장 확인</strong>
-            <span>EOCS 열기 <ExternalLink size={13} /></span>
-          </a>
-          <p className="eocs-note">작업 시작 신고는 기존 EOCS에서 진행합니다.</p>
-        </div>
-        <section className="site-information" aria-labelledby="site-information-title">
-          <h2 id="site-information-title">굴착공사 안전정보 확인</h2>
-          <div className="eocs-safety-panel">
-            <div className="safety-guidance">
-              <ShieldCheck size={27} />
-              <h3>가스배관 등 지하매설물<br />작업 주의 안내</h3>
-              <p>굴착 전 현장 위치와 주변 지하매설물을<br />확인한 후 작업하세요.</p>
-            </div>
-            <div className="management-guidance">
-              <h3>주변 지하매설물 관리기관</h3>
-              <p>현장별 관리기관과 연락처는<br />EOCS 현장 안전정보에서 확인할 수 있습니다.</p>
-              <a href={EOCS_URL} target="_blank" rel="noreferrer">
-                관리기관 연락처 확인 <ExternalLink size={14} />
-              </a>
-            </div>
-            <div className="safety-navigation">
-              <a href={EOCS_URL} target="_blank" rel="noreferrer"><Map size={17} /> 인근 굴착공사 지도 <ExternalLink size={14} /></a>
-              <button onClick={() => go('worker')}><Layers3 size={17} /> 인근 지하매설물 현황 <ArrowRight size={15} /></button>
-            </div>
-          </div>
-          <div className="service-extension">
-            <h3>현장 신고 · 배관 확인</h3>
-            <div className="service-shortcuts" aria-label="현장 서비스">
-              <button onClick={() => go('report')}>
-                <span><FilePenLine size={24} /></span>
-                <strong>시민 신고</strong>
-                <small>현장 내용 남기기</small>
-              </button>
-              <button onClick={() => go('worker')}>
-                <span><Box size={24} /></span>
-                <strong>배관 3D</strong>
-                <small>배관·단면 열람</small>
-              </button>
-              <button onClick={() => go('ar')}>
-                <span><ScanLine size={24} /></span>
-                <strong>지하 투시 AR</strong>
-                <small>실제 화면에 겹쳐보기</small>
-              </button>
-            </div>
-          </div>
-        </section>
-      </section>
-      <div className="entry-grid citizen-worker">
-        <section className="entry-scene" aria-label="도로 하부 배관 개요">
-          <Suspense fallback={<Loading />}>
-            <PipeScene
-              mode="underground"
-              showLabels={false}
-              showZones={false}
-              surfaceOpacity={0.08}
-            />
-          </Suspense>
-          <div className="scene-caption">산업배관 · 공업용수 · 하수 · 전력·통신</div>
-        </section>
-        <aside className="entry-actions">
-          <div>
-            <span className="eyebrow">YS-001 · 지하매설물</span>
-            <h2>도로 아래 배관 확인</h2>
-            <p>3D 배치와 도로 단면, 교차부 정보를 확인합니다.</p>
-            <button className="action secondary" onClick={() => go('worker')}>
-              <Box size={18} />
-              3D 배관 열기
-              <ArrowRight size={18} />
-            </button>
-          </div>
-        </aside>
+  return <section className="public-home">
+    <div className="public-title"><div><span className="eyebrow">누구나 이용 / 예시 현장</span><h1>한빛산단 앞 도로</h1></div><button className="public-qr" onClick={() => go('qr')}><QrCode size={18} />QR</button></div>
+    <div className="public-layout">
+      <div className="public-scene">
+        <Suspense fallback={<Loading />}><PipeScene mode="surface" showLabels={false} showZones={false} /></Suspense>
+        <span className="public-scene-caption"><MapPin size={14} />도로/보도/주변 건물을 재구성한 예시</span>
       </div>
-      <Sources />
-    </>
-  )
+      <div className="public-actions">
+        <section className="public-site-info"><span className="eyebrow">공사 안내</span><h2>보도 정비 공사</h2><p>도로 옆 보도를 정비하는 예시입니다.<br />보행 시 공사 구간을 피해 이동하세요.</p><button className="action secondary" onClick={() => go('report')}><FilePenLine size={18} />위험요소 신고<ArrowRight size={16} /></button></section>
+        <section className="public-worker-entry"><span className="eyebrow"><LockKeyhole size={13} />현장 업무</span><h2>작업 전 배관 확인</h2><p>작업 현장 확인 후 AR 또는 3D로 배관을 확인하세요.</p><div className="worker-entry-features"><span><Box size={16} />배관/깊이 확인</span><span><ScanLine size={16} />카메라 AR</span></div><button className="action primary" onClick={() => go('worker')}>작업 현장 확인<ArrowRight size={17} /></button></section>
+      </div>
+    </div>
+    <p className="public-note">데모 전용 / 실제 공사 조회/신고와 연결되지 않습니다.</p>
+  </section>
 }
+function WorkerHome({ session, go, logout }: { session: Session; go: (p: Page) => void; logout: () => void }) {
+  return <section className="worker-home">
+    <div className="field-title"><div><span className="eyebrow">한빛산단 앞 도로 / 예시 현장</span><h1>작업 전 배관 확인</h1></div><div className="worker-id"><span>{session.name}</span><button onClick={logout} aria-label="로그아웃"><LogOut size={17} /></button></div></div>
+    <p className="worker-home-intro">확인할 방식을 선택하세요.</p>
+    <div className="worker-launchers">
+      <button className="worker-launcher worker-launcher--ar" onClick={() => go('ar')}><ScanLine size={40} /><span className="eyebrow">카메라로 확인</span><h2>지하 투시 AR</h2><p>지면을 비추면 가상 배관이<br />반투명하게 나타납니다.</p><strong>AR 시작하기 <ArrowRight size={18} /></strong></button>
+      <button className="worker-launcher" onClick={() => go('viewer')}><Box size={40} /><span className="eyebrow">도면으로 확인</span><h2>3D 배관 보기</h2><p>모형을 돌려 배관 위치와<br />종류 / 깊이를 확인합니다.</p><strong>3D 열기 <ArrowRight size={18} /></strong></button>
+    </div>
+    <p className="public-note">가상 배관 데이터로 구성한 데모입니다.</p>
+  </section>
+}
+
 type View = 'perspective' | 'top' | 'section' | 'crossing'
 function Workbench({
   session,
@@ -313,7 +225,8 @@ function Workbench({
     [exploded, setExploded] = useState(false),
     [opacity, setOpacity] = useState(0.08),
     [reset, setReset] = useState(0),
-    [filter, setFilter] = useState('all')
+    [filter, setFilter] = useState('all'),
+    [panel, setPanel] = useState<'info' | 'list' | 'settings'>('info')
   const stage = useRef<HTMLDivElement>(null),
     f = FACILITIES[selected] ?? FACILITIES['GP-001']
   const items = Object.entries(FACILITIES).filter(
@@ -339,8 +252,8 @@ function Workbench({
     <>
       <div className="field-title">
         <div>
-          <span className="eyebrow">YS-001 · 여수산단</span>
-          <h1>도로 하부 배관</h1>
+          <span className="eyebrow">한빛산단 앞 도로 / 예시</span>
+          <h1>도로 하부 배관</h1><button className="quiet-back" onClick={() => go('worker')}>기능 선택으로 돌아가기</button>
         </div>
         <div className="worker-id">
           <span>{session.name}</span>
@@ -423,12 +336,12 @@ function Workbench({
           <div className="model-bottom">
             <span>
               {view === 'section'
-                ? '도로 횡단면 · 관로의 높이와 직경 비교'
+                ? '도로 횡단면 / 관로의 높이와 직경 비교'
                 : view === 'crossing'
-                  ? '교차 구간 · 상하 통과 관계'
+                  ? '교차 구간 / 상하 통과 관계'
                   : view === 'top'
-                    ? '평면 배치 · 도로 횡단과 분기'
-                    : '드래그 회전 · 휠 또는 두 손가락 확대'}
+                    ? '평면 배치 / 도로 횡단과 분기'
+                    : '드래그 회전 / 휠 또는 두 손가락 확대'}
             </span>
             <button
               aria-pressed={exploded}
@@ -448,6 +361,22 @@ function Workbench({
             <h2>관로 선택</h2>
             <span>{pipeCount}개 관로</span>
           </div>
+          <select
+            className="facility-picker"
+            aria-label="시설 선택"
+            value={selected}
+            onChange={(e) => select(e.target.value)}
+          >
+            {Object.entries(FACILITIES).map(([id, item]) => (
+              <option key={id} value={id}>
+                {id} / {item.kind}
+              </option>
+            ))}
+          </select>
+          <div className="inspector-tabs" aria-label="배관 도구">
+            {([['info', '상세 정보'], ['list', '시설 목록'], ['settings', '표시 설정']] as const).map(([id, label]) => <button key={id} aria-pressed={panel === id} onClick={() => setPanel(id)}>{label}</button>)}
+          </div>
+          <div hidden={panel !== 'list'}>
           <div className="system-filter" aria-label="시설 종류">
             {[
               ['all', '전체'],
@@ -465,18 +394,6 @@ function Workbench({
               </button>
             ))}
           </div>
-          <select
-            className="facility-picker"
-            aria-label="시설 선택"
-            value={selected}
-            onChange={(e) => select(e.target.value)}
-          >
-            {Object.entries(FACILITIES).map(([id, item]) => (
-              <option key={id} value={id}>
-                {id} · {item.kind}
-              </option>
-            ))}
-          </select>
           <div className="facility-list">
             {items.map(([id, item]) => (
               <button
@@ -500,7 +417,8 @@ function Workbench({
               </button>
             ))}
           </div>
-          <section className="facility-info" aria-label="선택한 시설">
+          </div>
+          <section hidden={panel !== 'info'} className="facility-info" aria-label="선택한 시설">
             <div className="selected-heading">
               <i style={{ background: f.color }} />
               <div>
@@ -540,15 +458,15 @@ function Workbench({
             </dl>
             <p>{f.detail}</p>
           </section>
-          <details className="layer-panel" open>
+          <details hidden={panel !== 'settings'} className="layer-panel" open>
             <summary>
               표시 설정
               <ChevronDown size={14} />
             </summary>
             <Switch label="산업배관" value={gas} change={setGas} />
-            <Switch label="상하수·전력·통신" value={utilities} change={setUtilities} />
-            <Switch label="보호판·구조물" value={structures} change={setStructures} />
-            <Switch label="주변 건물·도로" value={context} change={setContext} />
+            <Switch label="상하수/전력/통신" value={utilities} change={setUtilities} />
+            <Switch label="보호판/구조물" value={structures} change={setStructures} />
+            <Switch label="주변 건물/도로" value={context} change={setContext} />
             <Switch label="선택 정보" value={labels} change={setLabels} />
             <label className="opacity-control">
               노면 표시<span>{Math.round(opacity * 100)}%</span>
@@ -594,105 +512,39 @@ function Switch({
   )
 }
 function Login({ onBack, onSuccess }: { onBack: () => void; onSuccess: (s: Session) => void }) {
-  const [name, setName] = useState(''),
-    [permit, setPermit] = useState(''),
-    [password, setPassword] = useState(''),
-    [error, setError] = useState('')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [filled, setFilled] = useState(false)
   function submit(e: FormEvent) {
     e.preventDefault()
-    if (
-      permit.trim().toUpperCase() !== LOCATION.permit ||
-      password !== LOCATION.password ||
-      !name.trim()
-    ) {
-      setError('접속 코드와 비밀번호를 확인하세요.')
+    if (username.trim() !== LOCATION.receiptNumber || password !== LOCATION.password) {
+      setError('접수번호와 현장 비밀번호를 확인하세요.')
       return
     }
-    const next = { name: name.trim(), permit: LOCATION.permit, locationId: LOCATION.id }
     try {
+      const next = { name: '현장 작업자', permit: LOCATION.permit, locationId: LOCATION.id }
       saveSession(next)
       onSuccess(next)
-    } catch {
-      setError('접속 정보를 저장할 수 없습니다.')
-    }
+    } catch { setError('현장 정보를 저장할 수 없습니다. 브라우저의 저장 설정을 확인하세요.') }
   }
-  return (
-    <section className="compact-card login-access">
-      <button className="quiet-back" onClick={onBack}>
-        <ArrowLeft size={15} />
-        현장
-      </button>
-      <span className="eyebrow">YS-001</span>
-      <h1>배관 · AR 열람</h1>
-      <p className="login-intro-copy">이 구간의 배관을 3D와 AR로 확인하세요.</p>
-      <button
-        className="action primary prefill-button"
-        type="button"
-        onClick={() => {
-          const next = { name: '열람자', permit: LOCATION.permit, locationId: LOCATION.id }
-          try {
-            saveSession(next)
-            onSuccess(next)
-          } catch {
-            setError('접속 정보를 저장할 수 없습니다.')
-          }
-        }}
-      >
-        <Box size={19} />
-        바로 열람
-        <ArrowRight size={18} />
-      </button>
-      {error && (
-        <p className="field-error login-error" role="alert">{error}</p>
-      )}
-      <a className="login-eocs-link" href={EOCS_URL} target="_blank" rel="noreferrer">
-        <span><strong>작업 시작 신고</strong><small>휴대전화 인증과 신고는 EOCS에서 진행합니다.</small></span>
-        <ExternalLink size={17} />
-      </a>
-      <details className="access-note login-credentials">
-        <summary>접속 코드로 열람 <ChevronDown size={15} /></summary>
-        <p>{LOCATION.permit} / 1234 · 기관 계정 연동 전 열람용 접속입니다.</p>
-        <form onSubmit={submit}>
-          <label>
-            접속 코드
-            <input
-              autoComplete="username"
-              value={permit}
-              onChange={(e) => setPermit(e.target.value)}
-              placeholder="YS-2026-001"
-              required
-              maxLength={50}
-            />
-          </label>
-          <label>
-            이름
-            <input
-              autoComplete="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              maxLength={30}
-            />
-          </label>
-          <label>
-            비밀번호
-            <input
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              maxLength={30}
-            />
-          </label>
-          <button className="action secondary" type="submit">
-            배관 조회
-            <ArrowRight size={17} />
-          </button>
-        </form>
-      </details>
-    </section>
-  )
+  return <section className="compact-card worker-login">
+    <span className="login-lock"><LockKeyhole size={25} /></span>
+    <span className="eyebrow">현장 업무</span>
+    <h1>작업 현장 확인</h1>
+    <p className="login-description">접수번호로 현장을 확인한 후 AR / 3D를 이용합니다.</p>
+    <div className="demo-account"><strong>시험용 접속 정보</strong><dl><div><dt>접수번호</dt><dd>{LOCATION.receiptNumber}</dd></div><div><dt>현장 비밀번호</dt><dd>{LOCATION.password}</dd></div></dl>
+      <button type="button" onClick={() => { setUsername(LOCATION.receiptNumber); setPassword(LOCATION.password); setError(''); setFilled(true) }}><Copy size={16} />시험용 정보 자동입력</button>
+    </div>
+    <form onSubmit={submit}>
+      <label>공사 신고 접수번호<input autoComplete="username" value={username} onChange={e => { setUsername(e.target.value); setFilled(false) }} required maxLength={50} placeholder="예: DEMO-2026-001" /></label>
+      <label>현장 비밀번호<input type="password" autoComplete="current-password" value={password} onChange={e => { setPassword(e.target.value); setFilled(false) }} required maxLength={30} placeholder="현장 비밀번호 입력" /></label>
+      <p className="login-feedback" role={error ? 'alert' : 'status'}>{error || (filled ? '자동입력되었습니다. 현장 확인 버튼을 눌러주세요.' : '시험용 정보 자동입력 버튼을 눌러보세요.')}</p>
+      <button className="action primary" type="submit">현장 확인<ArrowRight size={18} /></button>
+    </form>
+    <button className="quiet-back" onClick={onBack}><ArrowLeft size={15} />공사 안내로 돌아가기</button>
+    <p className="login-demo-note">예시 접수번호 / 데모 전용 비밀번호입니다. EOCS 인증과 연결되지 않습니다.</p>
+  </section>
 }
 function ReportForm({
   onBack,
@@ -771,11 +623,11 @@ function ReportForm({
         현장
       </button>
       <span className="eyebrow">YS-001</span>
-      <h1>시민 신고</h1>
+      <h1>위험요소 신고</h1>
       <form onSubmit={submit}>
         <label>
           위치
-          <input readOnly value={`${LOCATION.id} · 여수산단`} />
+          <input readOnly value={`${LOCATION.id} / 한빛산단 (예시)`} />
         </label>
         <label>
           현장 사진 <small>선택</small>
@@ -832,7 +684,7 @@ function ReportForm({
           </p>
         )}
         <p className="storage-note">
-          기관 전송 미연결 · 내용은 이 기기에 저장되며 사진 파일은 보관하지 않습니다.
+          기관 전송 미연결 / 내용은 이 기기에 저장되며 사진 파일은 보관하지 않습니다.
         </p>
         <button className="action primary" disabled={busy} type="submit">
           {busy ? '저장 중' : '신고 내용 저장'}
@@ -855,7 +707,7 @@ function Receipt({ report, go }: { report: Report | null; go: (p: Page) => void 
           <dl>
             <div>
               <dt>위치</dt>
-              <dd>{report.locationId} · 여수산단</dd>
+              <dd>{report.locationId} / 한빛산단 (예시)</dd>
             </div>
             <div>
               <dt>저장 시각</dt>
@@ -931,7 +783,7 @@ function QRPanel({ notify }: { notify: (t: string) => void }) {
       <div className="qr-display">
         {qr ? <img src={qr} alt="현장 접속 QR" /> : <QrCode size={100} />}
       </div>
-      <p>현장 공사 조회 · 시민 신고 · 배관 정보</p>
+      <p>현장 공사 조회 / 위험요소 신고 / 배관 정보</p>
       <div className="qr-address">
         <code>{target}</code>
         <button onClick={copy} aria-label="주소 복사">

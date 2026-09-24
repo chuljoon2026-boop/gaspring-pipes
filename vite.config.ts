@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => {
           id: base,
           name: '현장 공사 조회',
           short_name: '현장 조회',
-          description: '여수산단 현장 공사 조회와 현장 제보, 3D 배관 열람.',
+          description: '예시 지형과 지하 배관 3D·AR 체험 데모.',
           lang: 'ko-KR',
           start_url: `${base}?location=YS-001`,
           scope: base,

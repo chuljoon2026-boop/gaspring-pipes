@@ -4,16 +4,16 @@ import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { createPipeModel, disposePipeModel } from '../ar/createPipeModel'
 import { FACILITIES } from '../network'
+import { DEMO_GIS } from '../ar/demoGIS'
 
 export type ARPhase = 'idle' | 'searching' | 'surface' | 'placed' | 'lost'
 export interface FloorARHandle {
   start: (session: XRSession) => Promise<void>
   end: () => Promise<void>
-  place: () => void
   reset: () => void
 }
 export type UndergroundSettings = {
-  facilityId: string; heading: number; depthOffset: number; gas: boolean; utilities: boolean; guides: boolean
+  facilityId: string; heading: number; depthOffset: number; gas: boolean; utilities: boolean; guides: boolean; opacity: number
 }
 type Props = { settings: UndergroundSettings; onPhase: (phase: ARPhase) => void; onReady: () => void }
 
@@ -46,7 +46,7 @@ function DepthGuides({ depth, label }: { depth: number; label: string }) {
     </mesh>)}
     <mesh position={[0, -depth, 0]}><sphereGeometry args={[0.06, 12, 8]} /><meshBasicMaterial color="#ffffff" /></mesh>
     <DepthLabel text="지면 0 m" position={[0.9, 0.1, 0]} />
-    <DepthLabel text={`${label} · 지하 ${depth.toFixed(2)} m`} position={[0.9, -depth, 0]} color="#9aefff" />
+    <DepthLabel text={`${label} / 지하 ${depth.toFixed(2)} m`} position={[0.9, -depth, 0]} color="#9aefff" />
   </group>
 }
 
@@ -64,13 +64,13 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
   const spaceRef = useRef<XRReferenceSpace | null>(null)
   const anchorRef = useRef<XRAnchor | null>(null)
   const placed = useRef(false)
-  const placeRequested = useRef(false)
+  const stableSince = useRef<number | null>(null)
+  const stableHeight = useRef(0)
   const generation = useRef(0)
   const placementId = useRef(0)
   const activeRef = useRef(true)
   const phaseRef = useRef<ARPhase>('idle')
   const [active, setActive] = useState(false)
-  const latestHit = useRef<XRHitTestResult | null>(null)
   const fixedMatrix = useMemo(() => new THREE.Matrix4(), [])
   const anchorOffset = useMemo(() => new THREE.Matrix4(), [])
   const scratch = useMemo(() => ({
@@ -87,16 +87,12 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
   const resetPlacement = useCallback(() => {
     placementId.current += 1
     placed.current = false
-    placeRequested.current = false
-    latestHit.current = null
+    stableSince.current = null
     anchorRef.current?.delete()
     anchorRef.current = null
     if (root.current) root.current.visible = false
     phase('searching')
   }, [phase])
-  const requestPlacement = useCallback(() => {
-    if (!placed.current && phaseRef.current === 'surface') placeRequested.current = true
-  }, [])
   const cleanup = useCallback(() => {
     generation.current += 1
     placementId.current += 1
@@ -107,12 +103,10 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
     spaceRef.current?.removeEventListener('reset', resetPlacement)
     spaceRef.current = null
     const session = sessionRef.current
-    session?.removeEventListener('select', requestPlacement)
     session?.removeEventListener('end', cleanup)
     sessionRef.current = null
     placed.current = false
-    placeRequested.current = false
-    latestHit.current = null
+    stableSince.current = null
     if (reticle.current) reticle.current.visible = false
     if (root.current) { root.current.matrix.identity(); root.current.visible = true }
     groundClip.constant = 0.012
@@ -121,7 +115,7 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
     if (activeRef.current) setActive(false)
     phase('idle')
     invalidate()
-  }, [camera, groundClip, invalidate, phase, requestPlacement, resetPlacement])
+  }, [camera, groundClip, invalidate, phase, resetPlacement])
   const end = useCallback(async () => {
     const session = sessionRef.current
     if (session) {
@@ -136,7 +130,6 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
       resetPlacement()
       setActive(true)
       session.addEventListener('end', cleanup)
-      session.addEventListener('select', requestPlacement)
       try {
         gl.xr.setReferenceSpaceType('local')
         gl.xr.enabled = true
@@ -158,7 +151,6 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
       }
     },
     end,
-    place: requestPlacement,
     reset: resetPlacement,
   }))
   useEffect(() => {
@@ -180,17 +172,22 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
   useEffect(() => {
     // Horizontal registration only: preserve the original negative burial coordinates.
     const content = model.getObjectByName('PipeNetwork')!
-    content.position.set(-selected.anchor[0], -settings.depthOffset, -selected.anchor[2])
+    content.position.set(...DEMO_GIS.drawingOffset)
     model.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) return
       const layer = object.userData.layer
       object.visible = layer === 'gas' ? settings.gas : layer === 'utilities' ? settings.utilities : false
       const materials = Array.isArray(object.material) ? object.material : [object.material]
-      for (const material of materials) material.clippingPlanes = [groundClip]
+      for (const material of materials) {
+        material.clippingPlanes = [groundClip]
+        material.opacity = settings.opacity
+        material.transparent = true
+        material.depthWrite = false
+      }
     })
     model.updateMatrixWorld(true)
     invalidate()
-  }, [model, selected, settings.depthOffset, settings.gas, settings.utilities, groundClip, invalidate])
+  }, [model, selected, settings.depthOffset, settings.gas, settings.utilities, settings.opacity, groundClip, invalidate])
   useEffect(() => {
     scene.background = active ? null : new THREE.Color('#14202f')
     gl.setClearAlpha(active ? 0 : 1)
@@ -205,8 +202,7 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
     if (!viewer || viewer.emulatedPosition || session.visibilityState !== 'visible') {
       root.current.visible = false
       reticle.current.visible = false
-      latestHit.current = null
-      placeRequested.current = false
+        stableSince.current = null
       phase('lost')
       return
     }
@@ -229,14 +225,13 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
     const hits = sourceRef.current ? frame.getHitTestResults(sourceRef.current) : []
     const hit = hits.find((result) => {
       const pose = result.getPose(space)
-      // A horizontal surface below the camera; the user chooses the floor.
-      return pose && pose.transform.matrix[5] > 0.9 && pose.transform.position.y < viewer.transform.position.y - 0.25
+      // Reject walls and implausible ground heights; require a stable plane below the viewer.
+      return pose && pose.transform.matrix[5] > 0.9 && pose.transform.position.y < viewer.transform.position.y - 0.6 && pose.transform.position.y > viewer.transform.position.y - 2.2
     })
     const pose = hit?.getPose(space)
-    latestHit.current = hit ?? null
     if (!hit || !pose) {
       reticle.current.visible = false
-      placeRequested.current = false
+      stableSince.current = null
       phase('searching')
       return
     }
@@ -244,9 +239,15 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
     reticle.current.matrixWorldNeedsUpdate = true
     reticle.current.visible = true
     phase('surface')
-    if (!placeRequested.current) return
-    placeRequested.current = false
-    scratch.position.set(pose.transform.position.x, pose.transform.position.y, pose.transform.position.z)
+    const now = performance.now()
+    if (stableSince.current === null || Math.abs(stableHeight.current - pose.transform.position.y) > 0.04) {
+      stableSince.current = now
+      stableHeight.current = pose.transform.position.y
+    }
+    if (now - stableSince.current < 450) return
+    // The hit supplies only ground height. The virtual GIS origin is under the
+    // viewer at registration, independent of where the camera ray meets ground.
+    scratch.position.set(viewer.transform.position.x, pose.transform.position.y, viewer.transform.position.z)
     scratch.quaternion.set(viewer.transform.orientation.x, viewer.transform.orientation.y, viewer.transform.orientation.z, viewer.transform.orientation.w)
     scratch.direction.set(0, 0, -1).applyQuaternion(scratch.quaternion)
     const yaw = Math.atan2(-scratch.direction.x, -scratch.direction.z)
@@ -279,7 +280,7 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
     <group ref={root} name="grounded-pipe-model" matrixAutoUpdate={false}>
       <group name="underground-registration" rotation={[0, settings.heading * Math.PI / 180, 0]}>
         <primitive object={model} dispose={null} />
-        {settings.guides && <DepthGuides depth={depth} label={selected.kind} />}
+        {settings.guides && <group position={[0, 0, -4]}><DepthGuides depth={depth} label={selected.kind} /></group>}
       </group>
     </group>
     <group ref={reticle} name="floor-placement-reticle" matrixAutoUpdate={false} visible={false}>
