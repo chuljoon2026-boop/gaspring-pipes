@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => {
           id: base,
           name: '현장 공사 조회',
           short_name: '현장 조회',
-          description: '예시 지형과 지하 배관 3D·AR 체험 데모.',
+          description: '굴착공사 현장 확인과 지하 배관 AR / 3D 조회.',
           lang: 'ko-KR',
           start_url: `${base}?location=YS-001`,
           scope: base,

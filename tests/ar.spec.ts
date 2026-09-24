@@ -3,7 +3,7 @@ import { installXRMock } from './xr-mock'
 
 async function openAR(page: Page) {
   await page.goto('/?location=YS-001#ar')
-  await page.getByRole('button', { name: '시험용 정보 자동입력', exact: true }).click()
+  await page.getByRole('button', { name: '접속 정보 자동입력', exact: true }).click()
   await page.getByRole('button', { name: '현장 확인', exact: true }).click()
   await expect(page).toHaveURL(/location=YS-001#ar$/)
   await expect(page.locator('[data-ar-mode="underground"]')).toHaveAttribute('data-ar-phase', 'idle')

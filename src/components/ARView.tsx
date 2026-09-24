@@ -101,10 +101,10 @@ export default function ARView({ onClose }: { onClose: () => void }) {
       </Suspense>
     </div>
     <header className="floor-ar-header">
-      <div><span><ScanLine size={15} /> 가상 GIS / DEMO</span><h1>지하 투시 AR</h1><p>{capability === 'camera' ? '간편 AR / 방향 센서 사용' : '지면 인식 / 배관 자동 표시'}</p></div>
+      <div><span><ScanLine size={15} /> GIS 배관 정보</span><h1>지하 투시 AR</h1><p>{capability === 'camera' ? '간편 AR / 방향 센서 사용' : '지면 인식 / 배관 자동 표시'}</p></div>
       <button className="floor-ar-close" onClick={close} aria-label="AR 닫기"><X size={22} /></button>
     </header>
-    {!active && <div className="floor-ar-guide"><Move3D size={22} /><span>현재 서 있는 곳을 예시 현장으로 설정합니다.<br />지면을 비추면 땅 아래 배관이 나타납니다.</span></div>}
+    {!active && <div className="floor-ar-guide"><Move3D size={22} /><span>현재 위치를 기준으로 배관을 표시합니다.<br />지면을 비추면 땅 아래 배관이 나타납니다.</span></div>}
     {registered && <div className="underground-depth-badge"><span className="depth-dot" />기준 배관 <strong>지하 1.85 m</strong></div>}
     <section className="floor-ar-panel">
       <p className="floor-ar-status" role="status">{error || (capability === 'unsupported'

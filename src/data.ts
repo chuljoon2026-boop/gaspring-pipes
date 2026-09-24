@@ -1,12 +1,12 @@
 export const LOCATION = {
   id: 'YS-001',
-  name: '한빛산단 앞 도로 (예시)',
-  address: '한빛산단 앞 도로 / 보도 정비 구간 (예시)',
+  name: '한빛산단 앞 도로',
+  address: '한빛산단 앞 도로 / 보도 정비 구간',
   coordinates: '실측 좌표 미사용',
   depth: 1.2,
   diameter: 300,
   permit: 'YS-2026-001',
-  receiptNumber: 'DEMO-2026-001',
+  receiptNumber: '2026-001-001',
   password: '1234',
 }
 
@@ -18,7 +18,6 @@ export type Page =
   | 'worker'
   | 'viewer'
   | 'ar'
-  | 'qr'
   | 'guide'
   | 'history'
 
