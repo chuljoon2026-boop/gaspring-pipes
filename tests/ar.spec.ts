@@ -387,7 +387,7 @@ async function maskState(page: Page) {
     tube.material.onBeforeCompile(shader, state.gl)
     const { data, width, height } = shader.uniforms.groundMask.value.image
     const pixel = (u: number, v: number) => data[Math.floor(v * height) * width + Math.floor(u * width)]
-    return { enabled: shader.uniforms.groundMaskEnabled.value, floor: pixel(0.2, 0.7), object: pixel(0.5, 0.7), unknown: pixel(0.5, 0.01), count: Array.from(data as Uint8Array).filter(Boolean).length }
+    return { enabled: shader.uniforms.groundMaskEnabled.value, floor: pixel(0.2, 0.7), object: pixel(0.5, 0.7), unknown: pixel(0.5, 0.01), feather: Array.from(data as Uint8Array).filter(value => value > 0 && value < 255).length, count: Array.from(data as Uint8Array).filter(value => value > 180).length }
   })
 }
 
@@ -401,7 +401,8 @@ test('depth masks preserve floor but occlude foreground objects and never reuse 
   await expect(page.locator('[data-ground-mask]')).toHaveAttribute('data-ground-mask', 'depth')
   await expect.poll(async () => (await maskState(page)).floor).toBe(255)
   expect((await maskState(page)).object).toBe(0)
-  expect((await maskState(page)).unknown).toBe(0)
+  expect((await maskState(page)).feather).toBeGreaterThan(20)
+  expect((await maskState(page)).unknown).toBeLessThan(107)
   await page.evaluate(() => window.__xrMock.setDepthMode('missing'))
   await expect.poll(async () => (await maskState(page)).count).toBe(0)
   await page.evaluate(() => window.__xrMock.setDepthMode('floor'))
@@ -422,13 +423,17 @@ test('ordinary camera automatically segments real floor and shows selectable pip
   await expect(page.locator('[data-ground-mask]')).toHaveAttribute('data-ground-mask', 'vision', { timeout: 30_000 })
   await expect.poll(async () => (await maskState(page)).count).toBeGreaterThan(200)
   await expect.poll(async () => (await cameraState(page)).visible).toBe(true)
-  expect((await maskState(page)).unknown).toBe(0)
+  expect((await maskState(page)).unknown).toBeLessThan(107)
   const card = page.getByRole('region', { name: '배관 정보', exact: true })
   await expect(card).toContainText('중심 심도 1.85 m')
   await expect(card).toContainText('관경 300 mm')
   await page.getByLabel('관로', { exact: true }).selectOption('GP-003')
   await expect(card).toContainText('중심 심도 2.10 m')
   await expect(card).toContainText('관경 250 mm')
+  await expect(page.getByRole('button', { name: '심도 기준선', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('button', { name: '심도 기준선', exact: true }).click()
+  await expect(page.getByRole('button', { name: '심도 기준선', exact: true })).toHaveAttribute('aria-pressed', 'false')
+  await page.getByRole('button', { name: '심도 기준선', exact: true }).click()
   await expect(page.getByRole('button', { name: /지면 영역/ })).toHaveCount(0)
   await page.screenshot({ path: `artifacts/vision/${info.project.name}-automatic-camera.png` })
   await page.getByRole('button', { name: '종료', exact: true }).click()

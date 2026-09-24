@@ -17,7 +17,7 @@ const phaseText: Record<ARPhase, string> = {
   lost: '위치를 다시 찾고 있습니다. 주변 지면을 비춰주세요.',
 }
 const initialSettings: UndergroundSettings = {
-  facilityId: 'GP-001', heading: 0, depthOffset: 0, gas: true, utilities: false, guides: false, opacity: 0.48,
+  facilityId: 'GP-001', heading: 0, depthOffset: 0, gas: true, utilities: false, guides: true, opacity: 0.48,
 }
 
 export default function ARView({ onClose }: { onClose: () => void }) {
@@ -152,6 +152,7 @@ export default function ARView({ onClose }: { onClose: () => void }) {
           <button aria-pressed={settings.gas} onClick={() => change('gas', !settings.gas)}><i className="gas-dot" />가스 / 제품관</button>
           <button aria-pressed={settings.utilities} onClick={() => change('utilities', !settings.utilities)}><i className="utility-dot" />상하수 / 전력 / 통신</button>
         </div>
+        <button className="ar-depth-toggle" aria-pressed={settings.guides} onClick={() => change('guides', !settings.guides)}>심도 기준선</button>
         <label className="ar-opacity" htmlFor="ar-opacity">배관 선명도 <input id="ar-opacity" type="range" min={0.15} max={0.8} step={0.05} value={settings.opacity} onChange={event => change('opacity', Number(event.target.value))} /></label>
       </>}
       {active ? <div className="floor-ar-actions">

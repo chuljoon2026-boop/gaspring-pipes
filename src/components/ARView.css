@@ -68,3 +68,5 @@
 @media(max-height:580px) and (orientation:landscape){.ar-pipe-info{top:148px;left:16px;width:calc(100% - 360px)}}
 
 .underground-ar.is-active .floor-ar-panel{padding:10px 12px}.underground-ar.is-active .floor-ar-status{margin:3px 0;font-size:11px}.underground-ar.is-active .underground-layers{margin-top:7px}.underground-ar.is-active .underground-layers button{padding:7px 5px}.underground-ar.is-active .ar-opacity{margin:8px 0}.underground-ar.is-active .floor-ar-primary,.underground-ar.is-active .floor-ar-secondary{min-height:36px;padding:8px 6px}.underground-ar.is-active .floor-ar-note{margin-top:7px;font-size:9px}
+
+.ar-depth-toggle{float:right;margin:9px 0 0 12px;border:1px solid #c4d5e6;background:#eaf3fc;border-radius:6px;padding:5px 8px;font:inherit;font-size:10px;color:#24537c}.ar-depth-toggle[aria-pressed=false]{background:white;color:#798692}

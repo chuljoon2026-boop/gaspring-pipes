@@ -40,7 +40,7 @@ export function createPipeModel(): THREE.Group {
     let result = materials.get(key)
     if (!result) {
       result = new THREE.MeshStandardMaterial({
-        color, metalness, roughness: 0.45, emissive: color, emissiveIntensity: 0.32,
+        color, metalness, roughness: 0.38, emissive: color, emissiveIntensity: 0.07,
         transparent: true, opacity: 0.48, depthWrite: false,
       })
       materials.set(key, result)

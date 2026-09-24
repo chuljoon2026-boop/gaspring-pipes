@@ -3,6 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
 import { createPipeModel, disposePipeModel } from '../ar/createPipeModel'
+import DepthReference from './DepthReference'
 import { FACILITIES } from '../network'
 import { DEMO_GIS } from '../ar/demoGIS'
 import type { GroundMask } from '../ar/GroundMask'
@@ -18,44 +19,9 @@ export type UndergroundSettings = {
 }
 type Props = { groundMask: GroundMask; settings: UndergroundSettings; onPhase: (phase: ARPhase) => void; onReady: () => void }
 
-function DepthLabel({ text, position, color = '#ffffff' }: { text: string; position: [number, number, number]; color?: string }) {
-  const texture = useMemo(() => {
-    const canvas = document.createElement('canvas')
-    canvas.width = 768; canvas.height = 136
-    const context = canvas.getContext('2d')!
-    context.fillStyle = '#10233bea'
-    context.beginPath(); context.roundRect(0, 0, 768, 136, 24); context.fill()
-    context.fillStyle = color; context.font = 'bold 46px sans-serif'
-    context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText(text, 384, 68)
-    const result = new THREE.CanvasTexture(canvas)
-    result.colorSpace = THREE.SRGBColorSpace
-    return result
-  }, [text, color])
-  useEffect(() => { texture.needsUpdate = true; return () => texture.dispose() }, [texture])
-  return <sprite position={position} scale={[1.6, 0.284, 1]} renderOrder={10}>
-    <spriteMaterial map={texture} depthTest={false} depthWrite={false} transparent toneMapped={false} />
-  </sprite>
-}
-
-function DepthGuides({ depth, label }: { depth: number; label: string }) {
-  return <group name="underground-depth-guides">
-    <mesh position={[0, 0.008, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[0.2, 0.225, 48]} /><meshBasicMaterial color="#49e7ff" side={THREE.DoubleSide} />
-    </mesh>
-    {Array.from({ length: Math.ceil(depth / 0.15) }, (_, i) => <mesh key={i} position={[0, -Math.min(depth, i * 0.15 + 0.05), 0]}>
-      <cylinderGeometry args={[0.008, 0.008, 0.075, 6]} /><meshBasicMaterial color="#49e7ff" />
-    </mesh>)}
-    <mesh position={[0, -depth, 0]}><sphereGeometry args={[0.06, 12, 8]} /><meshBasicMaterial color="#ffffff" /></mesh>
-    <DepthLabel text="지면 0 m" position={[0.9, 0.1, 0]} />
-    <DepthLabel text={`${label} / 지하 ${depth.toFixed(2)} m`} position={[0.9, -depth, 0]} color="#9aefff" />
-  </group>
-}
-
 const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ settings, onPhase, onReady, groundMask }, ref) {
   const { gl, camera, scene, invalidate } = useThree()
   const model = useMemo(createPipeModel, [])
-  const selected = FACILITIES[settings.facilityId]
-  const depth = -selected.anchor[1] + settings.depthOffset
   const groundClip = useMemo(() => new THREE.Plane(new THREE.Vector3(0, -1, 0), 0.012), [])
   const disposal = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const root = useRef<THREE.Group>(null)
@@ -193,7 +159,7 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
     })
     model.updateMatrixWorld(true)
     invalidate()
-  }, [model, selected, settings.depthOffset, settings.gas, settings.utilities, settings.opacity, groundClip, invalidate])
+  }, [model, settings.facilityId, settings.depthOffset, settings.gas, settings.utilities, settings.opacity, groundClip, invalidate])
   useEffect(() => {
     scene.background = active ? null : new THREE.Color('#14202f')
     gl.setClearAlpha(active ? 0 : 1)
@@ -288,13 +254,13 @@ const TrackedWorld = forwardRef<FloorARHandle, Props>(function TrackedWorld({ se
     }
   })
   return <>
-    <ambientLight intensity={1.6} />
-    <hemisphereLight args={['#ffffff', '#7d8c9e', 2]} />
+    <ambientLight intensity={0.7} />
+    <hemisphereLight args={['#ffffff', '#293746', 0.8]} />
     <directionalLight position={[3, 7, 5]} intensity={2.5} />
     <group ref={root} name="grounded-pipe-model" matrixAutoUpdate={false}>
       <group name="underground-registration" rotation={[0, settings.heading * Math.PI / 180, 0]}>
         <primitive object={model} dispose={null} />
-        {settings.guides && <group position={[0, 0, -4]}><DepthGuides depth={depth} label={selected.kind} /></group>}
+        {settings.guides && (FACILITIES[settings.facilityId].layer === 'gas' ? settings.gas : settings.utilities) && <DepthReference key={settings.facilityId} facilityId={settings.facilityId} groundMask={groundMask} />}
       </group>
     </group>
     <group ref={reticle} name="floor-placement-reticle" matrixAutoUpdate={false} visible={false}>

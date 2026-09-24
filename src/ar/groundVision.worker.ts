@@ -27,13 +27,14 @@ self.onmessage = async (event: MessageEvent<{ model?: string; rgba?: Uint8Clampe
     const values = logits.data as Float32Array, pixels = width * height
     const mask = new Uint8Array(pixels)
     for (let i = 0; i < pixels; i++) {
-      let best = -Infinity, next = -Infinity, label = 0
+      let bestGround = -Infinity, bestObject = -Infinity
       for (let c = 0; c < classes; c++) {
         const value = values[c * pixels + i]
-        if (value > best) { next = best; best = value; label = c } else if (value > next) next = value
+        if (groundClasses.has(c)) bestGround = Math.max(bestGround, value)
+        else bestObject = Math.max(bestObject, value)
       }
       // Ambiguous boundaries stay transparent instead of painting onto objects.
-      if (groundClasses.has(label) && best - next > 0.45) mask[i] = 255
+      mask[i] = Math.round(255 / (1 + Math.exp(-(bestGround - bestObject) * 1.5)))
     }
     input.dispose()
     Object.values(result).forEach(tensor => tensor.dispose())

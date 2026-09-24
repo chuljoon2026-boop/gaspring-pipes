@@ -3,6 +3,8 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { createPipeModel, disposePipeModel } from '../ar/createPipeModel'
 import { DEMO_GIS } from '../ar/demoGIS'
+import DepthReference from './DepthReference'
+import { FACILITIES } from '../network'
 import { startGroundVision } from '../ar/groundVision'
 import type { GroundMask } from '../ar/GroundMask'
 import type { ARPhase, UndergroundSettings } from './FloorARScene'
@@ -22,7 +24,7 @@ function OverlayWorld({ settings, orientation, active, onPhase, resetVersion, gr
     if (!active) return
     const timer = window.setInterval(() => {
       // Do not spend GPU time clearing invisible frames during model startup.
-      if (!registered.current || root.current?.visible || groundMask.pixels.some(value => value > 0)) invalidate()
+      if (!registered.current || root.current?.visible || groundMask.pixels.some(value => value > 128)) invalidate()
     }, 50)
     return () => clearInterval(timer)
   }, [active, invalidate, groundMask])
@@ -60,12 +62,12 @@ function OverlayWorld({ settings, orientation, active, onPhase, resetVersion, gr
       root.current.visible = true
       onPhase('placed')
     }
-    root.current.visible = registered.current && groundMask.pixels.some(value => value > 0)
+    root.current.visible = registered.current && groundMask.pixels.some(value => value > 128)
     camera.updateMatrixWorld()
 
   })
-  return <><ambientLight intensity={2} /><directionalLight position={[3, 7, 5]} intensity={2} />
-    <group ref={root} name="camera-gis-origin" visible={false}><primitive object={model} dispose={null} /></group></>
+  return <><ambientLight intensity={0.8} /><directionalLight position={[-3, 7, 2]} intensity={2.6} />
+    <group ref={root} name="camera-gis-origin" visible={false}><primitive object={model} dispose={null} />{settings.guides && (FACILITIES[settings.facilityId].layer === 'gas' ? settings.gas : settings.utilities) && <DepthReference key={settings.facilityId} facilityId={settings.facilityId} groundMask={groundMask} />}</group></>
 }
 
 /** Camera + orientation fallback. Rotation only; ground height is assumed,

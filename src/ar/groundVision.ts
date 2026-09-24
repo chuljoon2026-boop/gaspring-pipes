@@ -24,7 +24,8 @@ export function startGroundVision(video: HTMLVideoElement, mask: GroundMask,
       const index = (Math.floor((y + 0.5) / height * size) * size + Math.floor((x + 0.5) / width * size)) * 4
       let difference = 0
       for (let c = 0; c < 3; c++) difference += Math.abs(current[index + c] - rgba[index + c])
-      if (difference > 100) pixels[y * width + x] = 0
+      const confidence = Math.max(0, Math.min(1, (145 - difference) / 70))
+      pixels[y * width + x] = Math.round(pixels[y * width + x] * confidence)
     }
     mask.updateVision(pixels, width, height)
   }
