@@ -187,10 +187,16 @@ test('unsupported browsers including Quick Look-capable iOS do not offer a false
   await expect(page.getByRole('button', { name: '카메라 켜기', exact: true })).toHaveCount(0)
   await expect(page.locator('video, a[rel="ar"]')).toHaveCount(0)
   await expect(page.locator('canvas')).toBeVisible()
+  await page.waitForFunction(async () => {
+    const url = performance.getEntriesByType('resource').map(entry => entry.name).find(name => name.includes('react-three_fiber'))
+    if (!url) return false
+    const fiber = await import(/* @vite-ignore */ url)
+    return Boolean(fiber._roots.get(document.querySelector('canvas'))?.store.getState().scene.getObjectByName('PipeNetwork'))
+  })
   await expect.poll(async () => (await worldState(page)).tubeCenter[1]).toBeCloseTo(-1.85)
   await page.getByRole('button', { name: '기능 선택으로', exact: true }).click()
   await expect(page).toHaveURL(/#worker$/)
-  await expect(page.getByRole('heading', { name: '작업 전 배관 확인', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '지하매설물 조회', exact: true })).toBeVisible()
   expect(errors).toEqual([])
 })
 
@@ -300,7 +306,7 @@ test('camera fallback reveals translucent GIS pipes automatically when aimed dow
   await page.getByRole('button', { name: '카메라 켜기', exact: true }).click()
   await sensor(page, 0, 55)
   await page.getByRole('button', { name: 'AR 닫기', exact: true }).click()
-  await expect(page.getByRole('heading', { name: '작업 전 배관 확인', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '지하매설물 조회', exact: true })).toBeVisible()
   expect(await page.evaluate(() => (window as unknown as { __cameraMock: { stopped: number } }).__cameraMock.stopped)).toBe(2)
   expect(errors).toEqual([])
 })
@@ -328,4 +334,38 @@ test('camera orientation permission denial does not acquire a stream and allows 
   await expect(page.locator('[data-ar-phase]')).toHaveAttribute('data-ar-phase', 'placed')
   await page.getByRole('button', { name: '종료', exact: true }).click()
   expect((await cameraState(page)).stopped).toBe(1)
+})
+
+test('a raised surface is not auto-registered as ground; registration works after lowering to the floor', async ({ page }) => {
+  await installXRMock(page)
+  await openAR(page)
+  await page.evaluate(() => window.__xrMock.setGroundHeight(1.2))
+  await page.getByRole('button', { name: '카메라 켜기', exact: true }).click()
+  await expect(page.locator('[data-ar-phase]')).toHaveAttribute('data-ar-phase', 'searching')
+  // Longer than the 450ms auto-registration window, with a disallowed surface.
+  await page.waitForTimeout(700)
+  expect((await worldState(page)).visible).toBe(false)
+  await page.evaluate(() => window.__xrMock.setGroundHeight(0))
+  await expect(page.locator('[data-ar-phase]')).toHaveAttribute('data-ar-phase', 'placed')
+  expect((await worldState(page)).reference[1]).toBeCloseTo(-1.85)
+  await page.getByRole('button', { name: 'AR 닫기', exact: true }).click()
+})
+
+test('leaving AR during camera permission acquisition releases a late stream', async ({ page }) => {
+  const errors = collectErrors(page)
+  await installCameraMock(page)
+  await openAR(page)
+  await page.evaluate(() => {
+    const original = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices)
+    Object.defineProperty(navigator.mediaDevices, 'getUserMedia', { configurable: true, value: () => new Promise<MediaStream>(resolve => {
+      Object.assign(window, { __releaseCamera: async () => resolve(await original({ video: true })) })
+    }) })
+  })
+  await page.getByRole('button', { name: '카메라 켜기', exact: true }).click()
+  await expect.poll(() => page.evaluate(() => '__releaseCamera' in window)).toBe(true)
+  await page.getByRole('button', { name: 'AR 닫기', exact: true }).click()
+  await expect(page.getByRole('heading', { name: '지하매설물 조회', exact: true })).toBeVisible()
+  await page.evaluate(() => (window as unknown as { __releaseCamera: () => Promise<void> }).__releaseCamera())
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __cameraMock: { stopped: number } }).__cameraMock.stopped)).toBe(1)
+  expect(errors).toEqual([])
 })

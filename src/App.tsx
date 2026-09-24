@@ -119,7 +119,7 @@ export default function App() {
             <MapPin size={17} /><span>공사 조회</span>
           </button>
           <button aria-current={workerArea ? 'page' : undefined} className={workerArea ? 'is-active' : ''} onClick={() => go('worker')}>
-            <HardHat size={17} /><span>작업 시작 신고</span>
+            <HardHat size={17} /><span>현장 작업 시작</span>
           </button>
         </nav>
       </header>
@@ -173,30 +173,25 @@ export default function App() {
 }
 function Home({ go }: { go: (p: Page) => void }) {
   return <section className="site-landing">
+    <h1 className="site-page-title">현장 공사 조회</h1>
     <div className="site-location"><MapPin size={15} /><span>한빛산단 앞 도로</span><span className="site-code">YS-001</span></div>
     <div className="site-entry-grid">
       <section className="site-unregistered" aria-labelledby="registration-status">
-        <span className="site-status-icon"><CircleAlert size={38} strokeWidth={1.7} /></span>
-        <p className="site-kicker">굴착공사 접수 현황</p>
-        <h1 id="registration-status">접수가 되지 않은<br />공사입니다.</h1>
-        <p className="site-description">현장에서 굴착 작업이 진행 중이라면<br />위치와 작업 내용을 신고해 주세요.</p>
-        <button className="site-report-button" onClick={() => go('report')}><FilePenLine size={20} />신고하기<ArrowRight size={19} /></button>
+        <div className="site-query-status"><CircleAlert size={32} strokeWidth={1.8} /><h2 id="registration-status">공사 내역 미조회</h2><p>담당자 확인이 필요합니다.</p></div>
+        <button className="site-report-button" onClick={() => go('report')}><FilePenLine size={20} />현장 제보<ArrowRight size={19} /></button>
       </section>
-      <section className="site-work-entry" aria-labelledby="start-work-title">
-        <p className="site-kicker" id="start-work-title">접수번호가 있는 작업자</p>
-        <button className="site-start-circle" onClick={() => go('worker')}><HardHat size={35} strokeWidth={1.5} /><strong>작업 시작 신고</strong><ArrowRight size={23} /></button>
-        <p className="site-description">공사 접수번호 확인 후<br />지하 투시 AR / 3D 배관을 확인합니다.</p>
+      <section className="site-work-entry" aria-label="현장 작업 시작">
+        <button className="site-start-circle" onClick={() => go('worker')}><HardHat size={35} strokeWidth={1.5} /><strong>현장 작업 시작</strong><ArrowRight size={23} /></button>
       </section>
     </div>
   </section>
 }
 function WorkerHome({ session, go, logout }: { session: Session; go: (p: Page) => void; logout: () => void }) {
   return <section className="worker-home">
-    <div className="field-title"><div><span className="eyebrow">한빛산단 앞 도로</span><h1>작업 전 배관 확인</h1></div><div className="worker-id"><span>{session.name}</span><button onClick={logout} aria-label="로그아웃"><LogOut size={17} /></button></div></div>
-    <p className="worker-home-intro">확인할 방식을 선택하세요.</p>
+    <div className="field-title"><div><span className="eyebrow">한빛산단 앞 도로</span><h1>지하매설물 조회</h1></div><div className="worker-id"><span>{session.name}</span><button onClick={logout} aria-label="로그아웃"><LogOut size={17} /></button></div></div>
     <div className="worker-launchers">
-      <button className="worker-launcher worker-launcher--ar" onClick={() => go('ar')}><ScanLine size={40} /><span className="eyebrow">카메라로 확인</span><h2>지하 투시 AR</h2><p>지면을 비추면 가상 배관이<br />반투명하게 나타납니다.</p><strong>AR 시작하기 <ArrowRight size={18} /></strong></button>
-      <button className="worker-launcher" onClick={() => go('viewer')}><Box size={40} /><span className="eyebrow">도면으로 확인</span><h2>3D 배관 보기</h2><p>모형을 돌려 배관 위치와<br />종류 / 깊이를 확인합니다.</p><strong>3D 열기 <ArrowRight size={18} /></strong></button>
+      <button className="worker-launcher worker-launcher--ar" onClick={() => go('ar')}><ScanLine size={40} /><h2>지하 투시 AR</h2><strong>AR 실행 <ArrowRight size={18} /></strong></button>
+      <button className="worker-launcher" onClick={() => go('viewer')}><Box size={40} /><h2>3D 배관 조회</h2><strong>3D 조회 <ArrowRight size={18} /></strong></button>
     </div>
   </section>
 }
@@ -521,23 +516,22 @@ function Login({ onBack, onSuccess }: { onBack: () => void; onSuccess: (s: Sessi
       return
     }
     try {
-      const next = { name: '현장 작업자', permit: LOCATION.permit, locationId: LOCATION.id }
+      const next = { name: '굴착담당자', permit: LOCATION.permit, locationId: LOCATION.id }
       saveSession(next)
       onSuccess(next)
     } catch { setError('현장 정보를 저장할 수 없습니다. 브라우저의 저장 설정을 확인하세요.') }
   }
   return <section className="compact-card worker-login">
     <span className="login-lock"><LockKeyhole size={25} /></span>
-    <span className="eyebrow">작업 시작 신고</span>
-    <h1>작업 현장 확인</h1>
-    <p className="login-description">접수번호로 현장을 확인한 후 AR / 3D를 이용합니다.</p>
+    <span className="eyebrow">현장 작업 시작</span>
+    <h1>공사 정보 확인</h1>
     <div className="demo-account"><strong>접속 정보</strong><dl><div><dt>접수번호</dt><dd>{LOCATION.receiptNumber}</dd></div><div><dt>현장 비밀번호</dt><dd>{LOCATION.password}</dd></div></dl>
       <button type="button" onClick={() => { setUsername(LOCATION.receiptNumber); setPassword(LOCATION.password); setError(''); setFilled(true) }}><Copy size={16} />접속 정보 자동입력</button>
     </div>
     <form onSubmit={submit}>
       <label>공사 신고 접수번호<input autoComplete="username" value={username} onChange={e => { setUsername(e.target.value); setFilled(false) }} required maxLength={50} placeholder="접수번호 입력" /></label>
       <label>현장 비밀번호<input type="password" autoComplete="current-password" value={password} onChange={e => { setPassword(e.target.value); setFilled(false) }} required maxLength={30} placeholder="현장 비밀번호 입력" /></label>
-      <p className="login-feedback" role={error ? 'alert' : 'status'}>{error || (filled ? '자동입력되었습니다. 현장 확인 버튼을 눌러주세요.' : '접속 정보 자동입력 버튼을 눌러보세요.')}</p>
+      <p className="login-feedback" role={error ? 'alert' : 'status'}>{error || (filled ? '입력 완료' : '')}</p>
       <button className="action primary" type="submit">현장 확인<ArrowRight size={18} /></button>
     </form>
     <button className="quiet-back" onClick={onBack}><ArrowLeft size={15} />공사 안내로 돌아가기</button>
@@ -620,7 +614,7 @@ function ReportForm({
         현장
       </button>
       <span className="eyebrow">YS-001</span>
-      <h1>미접수 공사 신고</h1>
+      <h1>현장 제보</h1>
       <form onSubmit={submit}>
         <label>
           위치
@@ -658,11 +652,11 @@ function ReportForm({
           </button>
         )}
         <label>
-          작업 내용
+          관찰 내용
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="장비, 작업 위치, 진행 상황을 입력하세요."
+            placeholder="작업 위치 / 장비 / 진행 상황"
             required
             minLength={5}
             maxLength={500}
@@ -681,10 +675,10 @@ function ReportForm({
           </p>
         )}
         <p className="storage-note">
-          기관 전송 미연결 / 내용은 이 기기에 저장되며 사진 파일은 보관하지 않습니다.
+          이 기기에 기록됩니다. 기관 전송 및 사진 보관은 지원하지 않습니다.
         </p>
         <button className="action primary" disabled={busy} type="submit">
-          {busy ? '저장 중' : '신고 내용 저장'}
+          {busy ? '저장 중' : '제보 접수'}
           <ArrowRight size={17} />
         </button>
       </form>
@@ -697,7 +691,7 @@ function Receipt({ report, go }: { report: Report | null; go: (p: Page) => void 
       <div className="receipt-check">
         <Check size={28} />
       </div>
-      <h1>{report ? '신고 내용 저장 완료' : '저장된 내용이 없습니다'}</h1>
+      <h1>{report ? '접수 완료' : '접수 기록 없음'}</h1>
       {report && (
         <>
           <p className="receipt-id">{report.id}</p>
@@ -712,11 +706,11 @@ function Receipt({ report, go }: { report: Report | null; go: (p: Page) => void 
             </div>
           </dl>
           <p className="saved-reason">{report.reason}</p>
-          <p className="storage-note receipt-note">이 기기에 저장되었습니다. 기관으로 전송되지는 않았습니다.</p>
+          <p className="storage-note receipt-note">기기 내 접수 기록 / 기관 전송 없음</p>
         </>
       )}
       <button className="action primary" onClick={() => go('home')}>
-        현장으로 돌아가기
+        현장 공사 조회
         <ArrowRight size={17} />
       </button>
     </section>

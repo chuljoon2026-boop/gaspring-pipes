@@ -2,7 +2,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import sharp from 'sharp'
 
 const markerUrl = '/?location=YS-001'
-const unwantedCopy = /데모|DEMO|누구나 이용|현장 업무|가스온|가상\s*현장|시[연현]용|굴착\s*주의\s*영역|신고\s*내역|홈\s*화면에\s*추가|시민의식|샘플|sample|워터마크|watermark/i
+const unwantedCopy = /데모|DEMO|누구나 이용|현장 업무|현장 엄무|작업 전 배관 확인|가스온|가상\s*현장|시[연현]용|굴착\s*주의\s*영역|신고\s*내역|홈\s*화면에\s*추가|시민의식|샘플|sample|워터마크|watermark/i
 
 async function frame(page: Page) {
   await page.evaluate(async () => {
@@ -24,7 +24,7 @@ async function authenticate(page: Page) {
   await page.getByRole('button', { name: '접속 정보 자동입력', exact: true }).click()
   await page.getByRole('button', { name: '현장 확인', exact: true }).click()
   await expect(page).toHaveURL(/location=YS-001#worker$/)
-  await page.getByRole('button', { name: /3D 배관 보기/ }).click()
+  await page.getByRole('button', { name: /3D 배관 조회/ }).click()
   await expect(page.locator('canvas')).toBeVisible()
   await expect(page.getByRole('button', { name: '수소 GP-001 상세 정보', exact: true })).toBeVisible()
 }
@@ -45,18 +45,18 @@ test('공개 안내와 작업자 메뉴가 구분되고 첫 화면과 로그인�
   await page.goto(markerUrl)
   const nav = page.getByRole('navigation', { name: '이용자별 메뉴' })
   await expect(nav.getByRole('button', { name: '공사 조회' })).toHaveAttribute('aria-current', 'page')
-  await expect(page.getByRole('heading', { name: /접수가 되지 않은/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /현장 공사 조회/ })).toBeVisible()
   await expect(page.locator('a[href*="eocs.or.kr"]')).toHaveCount(0)
   await expect(page.locator('canvas')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'QR', exact: true })).toHaveCount(0)
   await checkLayout(page)
   await fitsScreen(page)
   await capture(page, testInfo, 'home')
-  await page.getByRole('button', { name: '신고하기', exact: true }).click()
-  await expect(page.getByRole('heading', { name: '미접수 공사 신고', exact: true })).toBeVisible()
-  await nav.getByRole('button', { name: '작업 시작 신고' }).click()
-  await expect(page.getByRole('heading', { name: '작업 현장 확인', exact: true })).toBeVisible()
-  await expect(nav.getByRole('button', { name: '작업 시작 신고' })).toHaveAttribute('aria-current', 'page')
+  await page.getByRole('button', { name: '현장 제보', exact: true }).click()
+  await expect(page.getByRole('heading', { name: '현장 제보', exact: true })).toBeVisible()
+  await nav.getByRole('button', { name: '현장 작업 시작' }).click()
+  await expect(page.getByRole('heading', { name: '공사 정보 확인', exact: true })).toBeVisible()
+  await expect(nav.getByRole('button', { name: '현장 작업 시작' })).toHaveAttribute('aria-current', 'page')
   await expect(page.locator('canvas')).toHaveCount(0)
   await expect(page.getByLabel('공사 신고 접수번호', { exact: true })).toHaveValue('')
   await expect(page.getByLabel('현장 비밀번호', { exact: true })).toHaveValue('')
@@ -67,17 +67,17 @@ test('공개 안내와 작업자 메뉴가 구분되고 첫 화면과 로그인�
   await page.getByRole('button', { name: '접속 정보 자동입력', exact: true }).click()
   await expect(page.getByLabel('공사 신고 접수번호', { exact: true })).toHaveValue('2026-001-001')
   await expect(page.getByLabel('현장 비밀번호', { exact: true })).toHaveValue('1234')
-  await expect(page.getByRole('heading', { name: '작업 현장 확인', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '공사 정보 확인', exact: true })).toBeVisible()
   await page.getByRole('button', { name: '현장 확인', exact: true }).click()
-  await expect(page.getByRole('heading', { name: '작업 전 배관 확인', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '지하매설물 조회', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: /지하 투시 AR/ })).toBeVisible()
-  await expect(page.getByRole('button', { name: /3D 배관 보기/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /3D 배관 조회/ })).toBeVisible()
   await fitsScreen(page)
   await page.reload()
-  await expect(page.getByRole('heading', { name: '작업 전 배관 확인', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '지하매설물 조회', exact: true })).toBeVisible()
   await page.getByRole('button', { name: '로그아웃', exact: true }).click()
   await page.goto(`${markerUrl}#worker`)
-  await expect(page.getByRole('heading', { name: '작업 현장 확인', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '공사 정보 확인', exact: true })).toBeVisible()
   await page.goto('/?location=UNKNOWN-999#worker')
   await expect(page.getByRole('heading', { name: '등록되지 않은 QR입니다', exact: true })).toBeVisible()
   await expect(page.locator('canvas')).toHaveCount(0)
@@ -85,7 +85,7 @@ test('공개 안내와 작업자 메뉴가 구분되고 첫 화면과 로그인�
 
 test('AR 직접 주소도 로그인 후 열리고 잘못된 비밀번호는 거부한다', async ({ page }) => {
   await page.goto(`${markerUrl}#ar`)
-  await expect(page.getByRole('heading', { name: '작업 현장 확인', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '공사 정보 확인', exact: true })).toBeVisible()
   await expect(page.locator('canvas')).toHaveCount(0)
   await page.getByRole('button', { name: '접속 정보 자동입력', exact: true }).click()
   await page.getByLabel('현장 비밀번호', { exact: true }).fill('wrong')
@@ -97,15 +97,15 @@ test('AR 직접 주소도 로그인 후 열리고 잘못된 비밀번호는 거�
   await expect(page).toHaveURL(/#ar$/)
   await expect(page.getByRole('heading', { name: '지하 투시 AR', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'AR 닫기', exact: true }).click()
-  await expect(page.getByRole('heading', { name: '작업 전 배관 확인', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '지하매설물 조회', exact: true })).toBeVisible()
 })
 
 test('사진 형식/용량을 검사하고 위험요소 신고 내용을 저장하여 새로고침 후에도 확인한다', async ({ page }, testInfo) => {
   await page.goto(`${markerUrl}#report`)
   await expect(page.getByLabel('위치', { exact: true })).toHaveValue('YS-001 / 한빛산단')
   await expect(page.getByLabel('위치', { exact: true })).toHaveAttribute('readonly', '')
-  await page.getByRole('button', { name: '신고 내용 저장', exact: true }).click()
-  expect(await page.getByLabel('작업 내용', { exact: true }).evaluate((el: HTMLTextAreaElement) => el.validity.valueMissing)).toBe(true)
+  await page.getByRole('button', { name: '제보 접수', exact: true }).click()
+  expect(await page.getByLabel('관찰 내용', { exact: true }).evaluate((el: HTMLTextAreaElement) => el.validity.valueMissing)).toBe(true)
   const upload = page.locator('input[type="file"]')
   await upload.setInputFiles({ name: 'invalid.txt', mimeType: 'text/plain', buffer: Buffer.from('not an image') })
   await expect(page.getByRole('alert')).toContainText('JPG, PNG, WEBP 또는 GIF')
@@ -118,13 +118,13 @@ test('사진 형식/용량을 검사하고 위험요소 신고 내용을 저장�
   await page.getByRole('button', { name: '사진 삭제', exact: true }).click()
   await expect(preview).toHaveCount(0)
   const reason = '도로 가장자리에서 굴착기 작업 중이며 현장 공사 안내 확인이 필요합니다.'
-  await page.getByLabel('작업 내용', { exact: true }).fill(reason)
-  await expect(page.getByText(/기관 전송 미연결/)).toBeVisible()
+  await page.getByLabel('관찰 내용', { exact: true }).fill(reason)
+  await expect(page.getByText(/기관 전송 및 사진 보관은 지원하지 않습니다/)).toBeVisible()
   await checkLayout(page)
-  await page.getByRole('button', { name: '신고 내용 저장', exact: true }).click()
+  await page.getByRole('button', { name: '제보 접수', exact: true }).click()
   await expect(page).toHaveURL(/location=YS-001#complete$/)
-  await expect(page.getByRole('heading', { name: '신고 내용 저장 완료', exact: true })).toBeVisible()
-  await expect(page.getByText('이 기기에 저장되었습니다. 기관으로 전송되지는 않았습니다.', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '접수 완료', exact: true })).toBeVisible()
+  await expect(page.getByText('기기 내 접수 기록 / 기관 전송 없음', { exact: true })).toBeVisible()
   await expect(page.getByText(reason, { exact: true })).toBeVisible()
   await page.reload({ waitUntil: 'domcontentloaded' })
   await expect(page.getByText(reason, { exact: true })).toBeVisible()
@@ -185,7 +185,7 @@ test('전체/평면/도로 단면/교차부가 다르게 렌더링되고 회전�
   await page.getByRole('button', { name: '시점 초기화', exact: true }).click()
   await page.getByRole('button', { name: '로그아웃', exact: true }).click()
   await page.goto(`${markerUrl}#worker`)
-  await expect(page.getByRole('heading', { name: '작업 현장 확인', exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '공사 정보 확인', exact: true })).toBeVisible()
   expect(errors).toEqual([])
 })
 
@@ -248,7 +248,7 @@ test('관로 심도/규격과 시설 필터/보호판 분리/레이어 표시가
 
 test('이전 QR 메뉴 주소도 공사 조회로 연결되며 QR을 다시 표시하지 않는다', async ({ page }) => {
   await page.goto(`${markerUrl}#qr`)
-  await expect(page.getByRole('heading', { name: /접수가 되지 않은/ })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /현장 공사 조회/ })).toBeVisible()
   await expect(page.getByRole('img', { name: '현장 접속 QR', exact: true })).toHaveCount(0)
   await expect(page.getByRole('button', { name: /QR|생성/ })).toHaveCount(0)
   await checkLayout(page)
