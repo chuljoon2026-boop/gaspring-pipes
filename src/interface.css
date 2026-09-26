@@ -1692,3 +1692,23 @@
 .site-page-title{text-align:center;font-size:28px;letter-spacing:-.8px;color:#18375c;margin:0 0 22px}.site-query-status{width:100%;max-width:340px;padding:32px 20px;border:1px solid #f8e5ba;background:#fff8e9;border-radius:12px;display:flex;align-items:center;flex-direction:column;color:#e4a326}.site-query-status h2{font-size:23px;color:#a36e0b;margin:17px 0 9px;letter-spacing:-.7px}.site-query-status p{font-size:13px;color:#7c7c74;margin:0}.site-unregistered{justify-content:center}.site-unregistered .site-report-button{max-width:340px;width:100%;margin-top:16px}.site-work-entry{gap:20px}.worker-launcher{min-height:260px}.report-card h1{color:#18375c}.receipt-check{background:#e4f6ec;color:#188855}
 @media(max-width:760px){.site-page-title{font-size:25px;margin:14px 0 18px}.site-query-status{max-width:none;padding:28px 15px}.site-query-status h2{font-size:22px;margin-top:15px}.site-unregistered{padding:0}.site-unregistered .site-report-button{max-width:none}.site-work-entry{padding:22px 12px;gap:16px}.worker-launcher{min-height:175px}.site-entry-grid{gap:20px}}
 @media(max-width:760px) and (max-height:740px){.site-page-title{margin:5px 0 12px;font-size:23px}.site-query-status{padding:20px 14px}.site-query-status h2{margin-top:10px;font-size:20px}.site-work-entry{padding:16px 12px;gap:12px}.site-entry-grid{gap:16px}}
+
+/* Compact launchers leave room for work controls on the same screen. */
+.worker-home{gap:16px}
+.worker-home .worker-launcher{min-height:158px;padding:22px;gap:12px}
+.worker-home .worker-launcher>svg{width:28px;height:28px}
+.worker-home .worker-launcher h2{font-size:23px}
+.work-status-card{background:#fff;border:1px solid #d4dfef;border-radius:16px;padding:18px 20px}
+.work-status-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.work-status-heading h2{margin:0;font-size:19px;color:#18375c;letter-spacing:-.5px}
+.work-status-badge{border-radius:20px;padding:5px 9px;font-size:11px;font-weight:700;white-space:nowrap;background:#e7f5ee;color:#19744e}
+.work-status-badge.is-paused{background:#fff0ef;color:#bc3848}
+.work-status-card>p{font-size:12px;color:#738399;margin:5px 0 12px}
+.work-status-actions{display:grid;gap:7px}
+.work-status-actions button{display:flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:8px;min-height:40px;padding:9px 12px;font:inherit;font-size:13px;font-weight:700;color:#fff;cursor:pointer;transition:filter .15s,transform .15s}
+.work-pause{background:#ed4059}.work-resume{background:#176cf1}.work-finish{background:#194681}
+.work-status-actions button:disabled{opacity:.38;cursor:default}
+.work-status-actions button:not(:disabled):hover{filter:brightness(.94)}
+.work-status-actions button:not(:disabled):active{transform:scale(.99)}
+.work-status-actions button:focus-visible{outline:3px solid #8cb8fa;outline-offset:3px}
+@media(max-width:760px){.worker-home{gap:12px;margin:8px auto}.worker-home .worker-launchers{gap:10px}.worker-home .worker-launcher{min-height:102px;padding:16px 18px;gap:9px}.worker-home .worker-launcher>svg{position:absolute;right:18px;top:17px;width:25px;height:25px}.worker-home .worker-launcher{position:relative}.worker-home .worker-launcher h2{font-size:20px;padding-right:30px}.worker-home .worker-launcher strong{font-size:11px}.work-status-card{padding:14px;border-radius:12px}.work-status-heading h2{font-size:18px}.work-status-card>p{font-size:11px;margin-bottom:10px}}

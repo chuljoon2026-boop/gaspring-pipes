@@ -1,6 +1,9 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import {
+  CirclePause,
+  CirclePlay,
+  CircleStop,
   ArrowLeft,
   CircleAlert,
   HardHat,
@@ -98,6 +101,17 @@ export default function App() {
     setRoute(next)
     window.scrollTo(0, 0)
   }
+  function changeWorkStatus(workStatus: 'active' | 'paused') {
+    if (!session || (session.workStatus || 'active') === workStatus) return
+    try {
+      saveSession({ ...session, workStatus })
+      setSession(getSession())
+    } catch { setToast('작업 상태를 저장하지 못했습니다. 다시 시도해 주세요.') }
+  }
+  function finishWork() {
+    logout()
+    setToast('작업을 종료했습니다.')
+  }
   function logout() {
     clearSession()
     setSession(null)
@@ -136,7 +150,7 @@ export default function App() {
         ) : (
           <>
             {page === 'home' && <Home go={go} />}
-            {page === 'worker' && session && <WorkerHome session={session} go={go} logout={logout} />}
+            {page === 'worker' && session && <WorkerHome session={session} go={go} logout={logout} changeWorkStatus={changeWorkStatus} finishWork={finishWork} />}
             {page === 'viewer' && session && (
               <Workbench session={session} go={go} logout={logout} notify={setToast} />
             )}
@@ -144,7 +158,7 @@ export default function App() {
               <Login
                 onBack={() => go('home')}
                 onSuccess={(s) => {
-                  setSession(s)
+                  setSession(getSession() || s)
                   go(route === 'ar' ? 'ar' : route === 'viewer' ? 'viewer' : 'worker')
                 }}
               />
@@ -186,13 +200,23 @@ function Home({ go }: { go: (p: Page) => void }) {
     </div>
   </section>
 }
-function WorkerHome({ session, go, logout }: { session: Session; go: (p: Page) => void; logout: () => void }) {
+function WorkerHome({ session, go, logout, changeWorkStatus, finishWork }: { session: Session; go: (p: Page) => void; logout: () => void; changeWorkStatus: (status: 'active' | 'paused') => void; finishWork: () => void }) {
+  const paused = session.workStatus === 'paused'
   return <section className="worker-home">
     <div className="field-title"><div><span className="eyebrow">한빛산단 앞 도로</span><h1>지하매설물 조회</h1></div><div className="worker-id"><span>{session.name}</span><button onClick={logout} aria-label="로그아웃"><LogOut size={17} /></button></div></div>
     <div className="worker-launchers">
       <button className="worker-launcher worker-launcher--ar" onClick={() => go('ar')}><ScanLine size={40} /><h2>매설배관 AR 조회</h2><strong>AR 실행 <ArrowRight size={18} /></strong></button>
       <button className="worker-launcher" onClick={() => go('viewer')}><Box size={40} /><h2>3D 배관 조회</h2><strong>3D 조회 <ArrowRight size={18} /></strong></button>
     </div>
+    <section className="work-status-card" aria-labelledby="work-status-title">
+      <div className="work-status-heading"><h2 id="work-status-title">작업 상태 관리</h2><span className={'work-status-badge ' + (paused ? 'is-paused' : 'is-active')} role="status">{paused ? '작업 중지 중' : '작업 진행 중'}</span></div>
+      <p>현장의 작업 상태를 변경할 수 있습니다.</p>
+      <div className="work-status-actions">
+        <button className="work-pause" disabled={paused} onClick={() => changeWorkStatus('paused')}><CirclePause size={19} />작업 중지</button>
+        <button className="work-resume" disabled={!paused} onClick={() => changeWorkStatus('active')}><CirclePlay size={19} />작업 재개</button>
+        <button className="work-finish" onClick={finishWork}><CircleStop size={19} />작업 종료</button>
+      </div>
+    </section>
   </section>
 }
 

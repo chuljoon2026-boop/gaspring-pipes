@@ -30,7 +30,7 @@ export type Report = {
   createdAt: string
   hasPhoto: boolean
 }
-export type Session = { name: string; permit: string; locationId: string }
+export type Session = { name: string; permit: string; locationId: string; workStatus?: 'active' | 'paused'; startedAt?: string; updatedAt?: string }
 const REPORT_KEY = 'gason.reports.v1'
 const AUTH_KEY = 'gason.worker-session.v2'
 
@@ -78,7 +78,9 @@ export function getSession(): Session | null {
 }
 
 export function saveSession(session: Session) {
-  sessionStorage.setItem(AUTH_KEY, JSON.stringify(session))
+  const now = new Date().toISOString()
+  const next = { ...session, workStatus: session.workStatus || 'active', startedAt: session.startedAt || now, updatedAt: now }
+  sessionStorage.setItem(AUTH_KEY, JSON.stringify(next))
 }
 export function clearSession() {
   sessionStorage.removeItem(AUTH_KEY)
